@@ -19,16 +19,28 @@ def webhook():
     if not data or data.get("secret") != WEBHOOK_SECRET:
         return jsonify({"error": "Unauthorized"}), 401
 
-    symbol = data.get("symbol")
-    side   = data.get("side")    # "buy" or "sell"
-    qty    = data.get("qty")
-    tp     = data.get("tp")      # take profit price
-    sl     = data.get("sl")      # stop loss price
+    symbol  = data.get("symbol")
+    side    = data.get("side")      # "buy" or "sell"
+    tp      = data.get("tp")        # take profit price
+    sl      = data.get("sl")        # stop loss price
+    dollars = data.get("dollars")   # position size in dollars
+    qty     = data.get("qty")       # position size in shares
 
-    if not all([symbol, side, qty, tp, sl]):
-        return jsonify({"error": "Missing required fields: symbol, side, qty, tp, sl"}), 400
+    if not all([symbol, side, tp, sl]):
+        return jsonify({"error": "Missing required fields: symbol, side, tp, sl"}), 400
+
+    if not dollars and not qty:
+        return jsonify({"error": "Either qty or dollars is required"}), 400
 
     try:
+        # Calculate qty from dollars if needed
+        if dollars:
+            last_trade = api.get_latest_trade(symbol)
+            price = float(last_trade.price)
+            qty = int(float(dollars) / price)  # whole shares only
+            if qty < 1:
+                return jsonify({"error": f"Dollar amount too small to buy 1 share of {symbol} at {price}"}), 400
+
         order = api.submit_order(
             symbol=symbol,
             qty=qty,
