@@ -59,7 +59,8 @@ def webhook():
             "qty": order.qty,
             "side": order.side,
             "tp": tp,
-            "sl": sl
+            "sl": sl,
+            "price": price if dollars else None
         }), 200
 
     except Exception as e:
