@@ -26,28 +26,64 @@ def webhook():
     qty      = data.get("qty")       # e.g. 10
     order_type = data.get("type", "market")  # "market" or "limit"
     limit_price = data.get("limit_price")    # only needed for limit orders
+    tp          = data.get("tp")
+    sl          = data.get("sl")
+    trail_price   = data.get("trail_price")
+    trail_percent = data.get("trail_percent")
 
     if not all([symbol, side, qty]):
         return jsonify({"error": "Missing required fields: symbol, side, qty"}), 400
 
+    if not sl:
+        return jsonify({"error": "sl (stop loss) is required"}), 400
+
     try:
-        if order_type == "limit" and limit_price:
-            order = api.submit_order(
+        if trail_price or trail_percent:
+            # Trailing stop + hard SL floor as two separate orders
+            trail_order = api.submit_order(
                 symbol=symbol,
                 qty=qty,
                 side=side,
-                type="limit",
-                limit_price=limit_price,
-                time_in_force="gtc"
+                type="trailing_stop",
+                trail_price=trail_price,
+                trail_percent=trail_percent,
+                time_in_force="day"
             )
-        else:
+            # Hard stop floor to cap max loss
+            sl_order = api.submit_order(
+                symbol=symbol,
+                qty=qty,
+                side="sell" if side == "buy" else "buy",
+                type="stop",
+                stop_price=sl,
+                time_in_force="day"
+            )
+            order = trail_order  # return trail order as main reference
+
+        elif tp:
+            # Bracket: fixed TP + fixed SL
             order = api.submit_order(
                 symbol=symbol,
                 qty=qty,
                 side=side,
                 type="market",
-                time_in_force="day"
+                time_in_force="day",
+                order_class="bracket",
+                take_profit={"limit_price": tp},
+                stop_loss={"stop_price": sl}
             )
+        else:
+            # Plain order with just a stop loss
+            order = api.submit_order(
+                symbol=symbol,
+                qty=qty,
+                side=side,
+                type="market" if not limit_price else "limit",
+                limit_price=limit_price,
+                time_in_force="day",
+                order_class="oto",
+                stop_loss={"stop_price": sl}
+            )        
 
         return jsonify({
             "status": "order submitted",
