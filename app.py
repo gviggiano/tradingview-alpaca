@@ -19,6 +19,9 @@ def webhook():
     if not data or data.get("secret") != WEBHOOK_SECRET:
         return jsonify({"error": "Unauthorized"}), 401
 
+    if data.get("ignored"):
+        return jsonify("OK"), 200
+
     symbol  = data.get("symbol")
     side    = data.get("side")      # "buy" or "sell"
     tp      = data.get("tp")        # take profit price
@@ -46,7 +49,7 @@ def webhook():
             qty=qty,
             side=side,
             type="market",
-            time_in_force="day",
+            time_in_force="gtc",
             order_class="bracket",
             take_profit={"limit_price": tp},
             stop_loss={"stop_price": sl}
