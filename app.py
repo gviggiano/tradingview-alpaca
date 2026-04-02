@@ -32,21 +32,21 @@ def webhook():
     if not all([symbol, side, tp, sl]):
         return jsonify({"error": "Missing required fields: symbol, side, tp, sl"}), 400
 
-    if not dollars and not qty:
-        return jsonify({"error": "Either qty or dollars is required"}), 400
-
     try:
-        # Calculate qty from dollars if needed
-        if dollars:
-            last_trade = api.get_latest_trade(symbol)
-            price = float(last_trade.price)
-            qty = int(float(dollars) / price)  # whole shares only
-            if qty < 1:
-                return jsonify({"error": f"Dollar amount too small to buy 1 share of {symbol} at {price}"}), 400
+        # 1. Get account buying power
+        last_trade = api.get_latest_trade(symbol)
+        price = float(last_trade.price)
+        account = api.get_account()
+        buying_power = float(account.buying_power)
 
+        # Optional safety buffer (HIGHLY recommended)
+        notional = round(buying_power * 0.97, 2)
+
+        if notional <= 0:
+            return jsonify({"error": "No buying power available"}), 400
         order = api.submit_order(
             symbol=symbol,
-            qty=qty,
+            notional=notional,
             side=side,
             type="market",
             time_in_force="gtc",
@@ -63,7 +63,7 @@ def webhook():
             "side": order.side,
             "tp": tp,
             "sl": sl,
-            "price": price if dollars else None
+            "price": price
         }), 200
 
     except Exception as e:
