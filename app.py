@@ -16,37 +16,55 @@ api = tradeapi.REST(ALPACA_API_KEY, ALPACA_SECRET_KEY, ALPACA_BASE_URL)
 def webhook():
     data = request.get_json()
 
+    # --- Auth ---
     if not data or data.get("secret") != WEBHOOK_SECRET:
         return jsonify({"error": "Unauthorized"}), 401
 
+    # --- Ignored signal ---
     if data.get("ignored"):
-        return jsonify("OK"), 200
+        return jsonify({"status": "ignored"}), 200
 
-    symbol  = data.get("symbol")
-    side    = data.get("side")      # "buy" or "sell"
-    tp      = data.get("tp")        # take profit price
-    sl      = data.get("sl")        # stop loss price
-    dollars = data.get("dollars")   # position size in dollars
-    qty     = data.get("qty")       # position size in shares
+    # --- Parse & validate fields ---
+    symbol = data.get("symbol")
+    side   = data.get("side")
+    tp     = data.get("tp")
+    sl     = data.get("sl")
 
     if not all([symbol, side, tp, sl]):
         return jsonify({"error": "Missing required fields: symbol, side, tp, sl"}), 400
 
+    if side not in ("buy", "sell"):
+        return jsonify({"error": "side must be 'buy' or 'sell'"}), 400
+
     try:
-        # 1. Get account buying power
+        tp = float(tp)
+        sl = float(sl)
+    except (TypeError, ValueError):
+        return jsonify({"error": "tp and sl must be valid numbers"}), 400
+
+    try:
+        # --- Get current price ---
         last_trade = api.get_latest_trade(symbol)
         price = float(last_trade.price)
-        account = api.get_account()
-        buying_power = float(account.buying_power)
 
-        # Optional safety buffer (HIGHLY recommended)
-        notional = round(buying_power * 0.97, 2)
+        # --- Calculate qty from buying power ---
+        account      = api.get_account()
+        buying_power = float(account.buying_power)
+        notional     = round(buying_power * 0.97, 2)
 
         if notional <= 0:
             return jsonify({"error": "No buying power available"}), 400
+
+        # Bracket orders require qty, not notional
+        qty = int(notional / price)
+
+        if qty == 0:
+            return jsonify({"error": "Insufficient buying power to buy a single share"}), 400
+
+        # --- Submit bracket order ---
         order = api.submit_order(
             symbol=symbol,
-            notional=notional,
+            qty=qty,
             side=side,
             type="market",
             time_in_force="gtc",
