@@ -3,6 +3,7 @@ import alpaca_trade_api as tradeapi
 import os
 import time
 import uuid
+import json
 import traceback
 from concurrent.futures import ThreadPoolExecutor
 from werkzeug.exceptions import HTTPException
@@ -28,54 +29,44 @@ executor = ThreadPoolExecutor(max_workers=5)
 recent_signals = TTLCache(maxsize=1000, ttl=30)
 
 
-# --- LOGGING HELPER ---
-def log(level, request_id, message, **kwargs):
-    log_entry = {
+# --- LOG ---
+def log(level, rid, msg, **kwargs):
+    entry = {
         "level": level,
-        "request_id": request_id,
-        "message": message,
+        "request_id": rid,
+        "msg": msg,
         "ts": round(time.time(), 3),
         **kwargs
     }
-    print(log_entry, flush=True)
+    print(json.dumps(entry), flush=True)
 
 
-# --- GLOBAL ERROR HANDLER ---
+# --- ERROR HANDLER ---
 @app.errorhandler(Exception)
 def handle_exception(e):
     if isinstance(e, HTTPException):
         return jsonify({"status": "error", "message": e.description}), e.code
 
-    print("🔥 GLOBAL ERROR:", str(e), flush=True)
     traceback.print_exc()
     return jsonify({"status": "error", "message": "Internal server error"}), 500
 
 
 # --- RETRY ---
-def retry(func, request_id, label, attempts=3, delay=1):
+def retry(func, rid, label, attempts=3, delay=1):
     for i in range(attempts):
         try:
-            start = time.time()
-            result = func()
-            elapsed = round(time.time() - start, 3)
-
-            log("INFO", request_id, f"{label} success", attempt=i+1, duration=elapsed)
-            return result
-
+            return func()
         except Exception as e:
-            log("WARN", request_id, f"{label} failed", attempt=i+1, error=str(e))
-
+            log("WARN", rid, f"{label} failed", attempt=i+1, error=str(e))
             if i == attempts - 1:
-                log("ERROR", request_id, f"{label} final failure", error=str(e))
                 raise
-
             time.sleep(delay)
 
 
 # --- WORKER ---
-def process_order(data, request_id):
+def process_order(data, rid):
     try:
-        log("INFO", request_id, "THREAD STARTED", data=data)
+        log("INFO", rid, "THREAD START")
 
         symbol = data["symbol"]
         side   = data["side"]
@@ -83,100 +74,103 @@ def process_order(data, request_id):
         sl     = float(data["sl"])
 
         # --- Dedup ---
-        dedup_key = f"{symbol}-{side}-{tp}-{sl}"
-        if dedup_key in recent_signals:
-            log("WARN", request_id, "Duplicate signal ignored", key=dedup_key)
+        key = f"{symbol}-{side}-{tp}-{sl}"
+        if key in recent_signals:
+            log("WARN", rid, "Duplicate ignored")
             return
+        recent_signals[key] = True
 
-        recent_signals[dedup_key] = True
-
-        # --- Market data ---
-        last_trade = retry(lambda: api.get_latest_trade(symbol), request_id, "get_latest_trade")
+        # --- Market price ---
+        last_trade = retry(lambda: api.get_latest_trade(symbol), rid, "get_latest_trade")
         price = float(last_trade.price)
 
-        log("INFO", request_id, "Price fetched", price=price)
-
-        if price <= 0:
-            log("ERROR", request_id, "Invalid price", price=price)
-            return
-
         # --- Account ---
-        account = retry(lambda: api.get_account(), request_id, "get_account")
+        account = retry(lambda: api.get_account(), rid, "get_account")
+
+        cash = float(account.cash)
         buying_power = float(account.buying_power)
+        regt_bp = float(getattr(account, "regt_buying_power", 0))
 
-        log("INFO", request_id, "Account fetched", buying_power=buying_power)
-
-        notional = round(buying_power * 0.97, 2)
-        qty = int(notional / price)
-
-        log("INFO", request_id, "Qty computed",
-            price=price,
+        log("INFO", rid, "ACCOUNT_STATE",
+            cash=cash,
             buying_power=buying_power,
-            notional=notional,
+            regt_buying_power=regt_bp,
+            price=price
+        )
+
+        # 🔥 KEY LOGIC: use ONLY settled cash with strong buffer
+        usable_funds = cash * 0.85
+
+        qty = int(usable_funds / price)
+
+        log("INFO", rid, "POSITION_SIZING",
+            usable_funds=usable_funds,
             qty=qty
         )
 
         if qty <= 0:
-            log("ERROR", request_id, "Insufficient buying power",
+            log("ERROR", rid, "INSUFFICIENT_FUNDS",
                 price=price,
-                buying_power=buying_power,
-                notional=notional
+                cash=cash,
+                usable_funds=usable_funds
             )
             return
 
-        # --- Order ---
-        order = retry(lambda: api.submit_order(
-            symbol=symbol,
-            qty=qty,
-            side=side,
-            type="market",
-            time_in_force="gtc",
-            order_class="bracket",
-            take_profit={"limit_price": tp},
-            stop_loss={"stop_price": sl}
-        ), request_id, "submit_order")
+        # --- Submit order ---
+        try:
+            order = retry(lambda: api.submit_order(
+                symbol=symbol,
+                qty=qty,
+                side=side,
+                type="market",
+                time_in_force="gtc",
+                order_class="bracket",
+                take_profit={"limit_price": tp},
+                stop_loss={"stop_price": sl}
+            ), rid, "submit_order")
 
-        log("INFO", request_id, "ORDER SUCCESS",
-            order_id=order.id,
-            symbol=symbol,
-            qty=qty,
-            side=side
-        )
+            log("INFO", rid, "ORDER_SUCCESS",
+                order_id=order.id,
+                qty=qty
+            )
+
+        except Exception as e:
+            log("ERROR", rid, "ORDER_FAILED",
+                error=str(e),
+                qty=qty,
+                price=price
+            )
+            traceback.print_exc()
 
     except Exception as e:
-        log("ERROR", request_id, "PROCESS ORDER FAILED", error=str(e))
+        log("ERROR", rid, "PROCESS_FAILED", error=str(e))
         traceback.print_exc()
 
     finally:
-        log("INFO", request_id, "THREAD FINISHED")
+        log("INFO", rid, "THREAD END")
 
 
 # --- WEBHOOK ---
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    request_id = str(uuid.uuid4())
-    start_time = time.time()
-
+    rid = str(uuid.uuid4())
     data = request.get_json()
 
-    log("INFO", request_id, "REQUEST RECEIVED", data=data)
+    log("INFO", rid, "REQUEST_RECEIVED", data=data)
 
     # --- Auth ---
     if not data or data.get("secret") != WEBHOOK_SECRET:
-        log("WARN", request_id, "Unauthorized request")
         return jsonify({"status": "error", "message": "Unauthorized"}), 401
 
     # --- Validate ---
     required = ["symbol", "side", "tp", "sl"]
     if not all(k in data for k in required):
-        log("WARN", request_id, "Missing fields", data=data)
-        return jsonify({"status": "error", "message": "Missing required fields"}), 400
+        return jsonify({"status": "error", "message": "Missing fields"}), 400
 
     if data["side"] not in ("buy", "sell"):
-        log("WARN", request_id, "Invalid side", side=data["side"])
         return jsonify({"status": "error", "message": "Invalid side"}), 400
 
-    # --- Pre-check (debug your issue here) ---
+    # --- Pre-check using settled cash ---
     try:
         symbol = data["symbol"]
 
@@ -184,38 +178,34 @@ def webhook():
         price = float(last_trade.price)
 
         account = api.get_account()
-        buying_power = float(account.buying_power)
+        cash = float(account.cash)
 
-        log("INFO", request_id, "PRECHECK",
+        usable_funds = cash * 0.85
+
+        log("INFO", rid, "PRECHECK",
             price=price,
-            buying_power=buying_power
+            cash=cash,
+            usable_funds=usable_funds
         )
 
-        if buying_power < price:
-            log("ERROR", request_id, "Precheck failed: insufficient buying power",
-                price=price,
-                buying_power=buying_power
-            )
+        if usable_funds < price:
             return jsonify({
                 "status": "error",
-                "message": f"Insufficient buying power (price={price}, bp={buying_power})"
+                "message": f"Insufficient settled funds (price={price}, usable_cash={usable_funds})"
             }), 400
 
     except Exception as e:
-        log("ERROR", request_id, "Precheck failed", error=str(e))
-        return jsonify({"status": "error", "message": "Precheck failed"}), 500
+        return jsonify({
+            "status": "error",
+            "message": f"Precheck failed: {str(e)}"
+        }), 500
 
     # --- Async ---
-    executor.submit(process_order, data, request_id)
-
-    elapsed = round(time.time() - start_time, 3)
-
-    log("INFO", request_id, "REQUEST ACCEPTED", duration=elapsed)
+    executor.submit(process_order, data, rid)
 
     return jsonify({
         "status": "ok",
-        "message": "order accepted",
-        "request_id": request_id
+        "request_id": rid
     }), 202
 
 
