@@ -4,6 +4,7 @@ import os
 import time
 from concurrent.futures import ThreadPoolExecutor
 from werkzeug.exceptions import HTTPException
+from cachetools import TTLCache
 
 app = Flask(__name__)
 
@@ -18,25 +19,17 @@ if not ALPACA_API_KEY or not ALPACA_SECRET_KEY:
 
 api = tradeapi.REST(ALPACA_API_KEY, ALPACA_SECRET_KEY, ALPACA_BASE_URL)
 
-# --- THREAD POOL (fix #1 concurrency limit) ---
+# --- THREAD POOL ---
 executor = ThreadPoolExecutor(max_workers=5)
 
-# --- SIMPLE DEDUP STORE (fix #3 duplicate signals) ---
-recent_signals = {}
-DEDUP_WINDOW = 30  # seconds
+# --- DEDUP CACHE (auto cleanup) ---
+recent_signals = TTLCache(maxsize=1000, ttl=30)
 
 
 def is_duplicate(key):
-    now = time.time()
-    # cleanup old entries
-    for k in list(recent_signals.keys()):
-        if now - recent_signals[k] > DEDUP_WINDOW:
-            del recent_signals[k]
-
     if key in recent_signals:
         return True
-
-    recent_signals[key] = now
+    recent_signals[key] = True
     return False
 
 
@@ -50,7 +43,7 @@ def handle_exception(e):
     return jsonify({"status": "error", "message": "Internal server error"}), 500
 
 
-# --- RETRY WRAPPER (fix #4 retries) ---
+# --- RETRY ---
 def retry(func, attempts=3, delay=1):
     for i in range(attempts):
         try:
@@ -72,13 +65,13 @@ def process_order(data):
         tp     = float(data["tp"])
         sl     = float(data["sl"])
 
-        # --- Dedup key ---
+        # --- Dedup ---
         dedup_key = f"{symbol}-{side}-{tp}-{sl}"
         if is_duplicate(dedup_key):
             print("⚠️ Duplicate signal ignored", flush=True)
             return
 
-        # --- Alpaca calls with retry (fix #2 + #4) ---
+        # --- Market data ---
         last_trade = retry(lambda: api.get_latest_trade(symbol))
         price = float(last_trade.price)
 
@@ -86,6 +79,7 @@ def process_order(data):
             print("❌ Invalid price", flush=True)
             return
 
+        # --- Account ---
         account = retry(lambda: api.get_account())
         buying_power = float(account.buying_power)
 
@@ -96,7 +90,7 @@ def process_order(data):
             print("❌ Not enough buying power", flush=True)
             return
 
-        # --- Submit order ---
+        # --- Order ---
         order = retry(lambda: api.submit_order(
             symbol=symbol,
             qty=qty,
@@ -125,7 +119,7 @@ def webhook():
     if not data or data.get("secret") != WEBHOOK_SECRET:
         return jsonify({"status": "error", "message": "Unauthorized"}), 401
 
-    # --- Ignore flag ---
+    # --- Ignored ---
     if data.get("ignored"):
         return jsonify({"status": "ok", "message": "ignored"}), 200
 
@@ -143,7 +137,7 @@ def webhook():
             "message": "Invalid side"
         }), 400
 
-    # --- Async execution ---
+    # --- Async ---
     executor.submit(process_order, data)
 
     return jsonify({
