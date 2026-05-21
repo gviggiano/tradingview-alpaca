@@ -162,7 +162,7 @@ def webhook():
     if not data or data.get("secret") != WEBHOOK_SECRET:
         return jsonify({"status": "error", "message": "Unauthorized"}), 401
 
-    if data["ignored"]:
+    if data.get("ignored"):
         return jsonify({"status": "ok", "message": "Request ignored"}), 200
 
     # --- Validate ---
