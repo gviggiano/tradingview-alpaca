@@ -16,6 +16,12 @@ ALPACA_API_KEY    = os.environ.get("ALPACA_API_KEY")
 ALPACA_SECRET_KEY = os.environ.get("ALPACA_SECRET_KEY")
 WEBHOOK_SECRET    = os.environ.get("WEBHOOK_SECRET")
 ALPACA_BASE_URL   = os.environ.get("ALPACA_BASE_URL", "https://paper-api.alpaca.markets")
+CASH_USAGE_PCT = float(os.environ.get("CASH_USAGE_PCT", "85"))
+CASH_USAGE_RATIO = CASH_USAGE_PCT / 100
+
+
+if not 0 < CASH_USAGE_PCT <= 100:
+    raise Exception("CASH_USAGE_PCT must be between 0 and 100")
 
 if not ALPACA_API_KEY or not ALPACA_SECRET_KEY:
     raise Exception("Missing Alpaca credentials")
@@ -99,7 +105,7 @@ def process_order(data, rid):
         )
 
         # 🔥 KEY LOGIC: use ONLY settled cash with strong buffer
-        usable_funds = cash * 0.85
+        usable_funds = cash * CASH_USAGE_RATIO
 
         qty = int(usable_funds / price)
 
@@ -183,7 +189,7 @@ def webhook():
         account = api.get_account()
         cash = float(account.cash)
 
-        usable_funds = cash * 0.85
+        usable_funds = cash * CASH_USAGE_RATIO
 
         log("INFO", rid, "PRECHECK",
             price=price,
