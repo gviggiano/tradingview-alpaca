@@ -1,16 +1,29 @@
 <!DOCTYPE html>
-
 <html lang="it">
+
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0"
+    >
 
     <title>Ledger — Trading Dashboard</title>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link
+            rel="preconnect"
+            href="https://fonts.googleapis.com"
+    >
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <link
+            href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap"
+            rel="stylesheet"
+    >
+
+    <script
+            src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js">
+    </script>
 
     <style>
 
@@ -44,21 +57,27 @@
             font-variant-numeric:tabular-nums;
         }
 
+        /* =========================
+           HEADER
+        ========================= */
+
         header{
             padding:22px 28px 18px;
             border-bottom:1px solid var(--line);
+
             display:flex;
-            align-items:baseline;
+            align-items:center;
             justify-content:space-between;
+
             flex-wrap:wrap;
-            gap:10px;
+            gap:15px;
         }
 
         header h1{
             font-size:15px;
             letter-spacing:.14em;
             text-transform:uppercase;
-            margin:0;
+            margin:0 0 5px;
             color:var(--accent);
             font-weight:600;
         }
@@ -69,11 +88,57 @@
             font-family:'IBM Plex Mono',monospace;
         }
 
+        /* =========================
+           PERIOD SELECTOR
+        ========================= */
+
+        .period-control{
+            display:flex;
+            align-items:center;
+            gap:10px;
+        }
+
+        .period-control label{
+            font-size:10px;
+            text-transform:uppercase;
+            letter-spacing:.08em;
+            color:var(--muted);
+        }
+
+        .period-control select{
+            background:var(--panel);
+            color:var(--text);
+
+            border:1px solid var(--line);
+
+            padding:8px 10px;
+
+            font-family:'IBM Plex Mono',monospace;
+            font-size:11px;
+
+            border-radius:var(--radius);
+
+            cursor:pointer;
+        }
+
+        .period-control select:focus{
+            outline:none;
+            border-color:var(--accent);
+        }
+
+        /* =========================
+           STATUS
+        ========================= */
+
         #status{
             padding:10px 28px;
+
             font-size:12px;
+
             color:var(--muted);
+
             font-family:'IBM Plex Mono',monospace;
+
             min-height:16px;
         }
 
@@ -81,16 +146,30 @@
             color:var(--loss);
         }
 
+        /* =========================
+           MAIN
+        ========================= */
+
         main{
             padding:22px 28px 60px;
         }
 
+        /* =========================
+           STATISTICS
+        ========================= */
+
         .stat-row{
             display:grid;
-            grid-template-columns:repeat(6,1fr);
+
+            grid-template-columns:
+                repeat(6,1fr);
+
             gap:1px;
+
             background:var(--line);
+
             border:1px solid var(--line);
+
             margin-bottom:22px;
         }
 
@@ -101,15 +180,21 @@
 
         .stat .label{
             font-size:10px;
+
             text-transform:uppercase;
+
             letter-spacing:.08em;
+
             color:var(--muted);
+
             margin-bottom:8px;
         }
 
         .stat .value{
             font-size:22px;
+
             font-weight:600;
+
             font-family:'IBM Plex Mono',monospace;
         }
 
@@ -121,19 +206,31 @@
             color:var(--loss);
         }
 
+        /* =========================
+           PANELS
+        ========================= */
+
         .panel{
             background:var(--panel);
+
             border:1px solid var(--line);
+
             margin-bottom:22px;
         }
 
         .panel h2{
             font-size:11px;
+
             text-transform:uppercase;
+
             letter-spacing:.1em;
+
             color:var(--muted);
+
             margin:0;
+
             padding:14px 18px;
+
             border-bottom:1px solid var(--line);
         }
 
@@ -143,9 +240,16 @@
 
         .grid-2{
             display:grid;
-            grid-template-columns:1.4fr 1fr;
+
+            grid-template-columns:
+                1.4fr 1fr;
+
             gap:22px;
         }
+
+        /* =========================
+           TABLE
+        ========================= */
 
         .table-wrapper{
             overflow-x:auto;
@@ -153,26 +257,39 @@
 
         table{
             width:100%;
+
             border-collapse:collapse;
+
             font-size:12.5px;
         }
 
         th{
             text-align:left;
+
             font-size:10px;
+
             text-transform:uppercase;
+
             letter-spacing:.06em;
+
             color:var(--muted);
+
             font-weight:500;
+
             padding:8px 10px;
+
             border-bottom:1px solid var(--line);
+
             white-space:nowrap;
         }
 
         td{
             padding:8px 10px;
+
             border-bottom:1px solid var(--line);
+
             font-family:'IBM Plex Mono',monospace;
+
             white-space:nowrap;
         }
 
@@ -188,42 +305,67 @@
             color:var(--loss);
         }
 
+        /* =========================
+           TAGS
+        ========================= */
+
         .tag{
             font-size:10px;
+
             padding:2px 6px;
+
             border-radius:2px;
+
             text-transform:uppercase;
+
             letter-spacing:.04em;
         }
 
         .tag-tp{
             background:rgba(79,178,134,.15);
+
             color:var(--profit);
         }
 
         .tag-sl{
             background:rgba(201,86,77,.15);
+
             color:var(--loss);
         }
 
+        /* =========================
+           EMPTY / LOADING
+        ========================= */
+
         .empty{
             color:var(--muted);
+
             font-size:12.5px;
+
             padding:30px 18px;
+
             text-align:center;
         }
 
         .loading{
             padding:40px;
+
             text-align:center;
+
             color:var(--muted);
+
             font-family:'IBM Plex Mono',monospace;
         }
+
+        /* =========================
+           RESPONSIVE
+        ========================= */
 
         @media (max-width:1100px){
 
             .stat-row{
-                grid-template-columns:repeat(3,1fr);
+                grid-template-columns:
+                    repeat(3,1fr);
             }
 
         }
@@ -252,7 +394,16 @@
             }
 
             .stat-row{
-                grid-template-columns:repeat(2,1fr);
+                grid-template-columns:
+                    repeat(2,1fr);
+            }
+
+            .period-control{
+                width:100%;
+            }
+
+            .period-control select{
+                flex:1;
             }
 
         }
@@ -265,10 +416,54 @@
 
 <header>
 
-    <h1>Ledger</h1>
+    <div>
 
-    <div class="sub">
-        statistiche di esecuzione — Alpaca
+        <h1>Ledger</h1>
+
+        <div class="sub">
+            statistiche di esecuzione — Alpaca
+        </div>
+
+    </div>
+
+    <!-- =========================
+         PERIODO
+    ========================== -->
+
+    <div class="period-control">
+
+        <label for="periodSelect">
+            Periodo
+        </label>
+
+        <select id="periodSelect">
+
+            <option value="all">
+                Tutto
+            </option>
+
+            <option value="7">
+                Ultimi 7 giorni
+            </option>
+
+            <option value="30">
+                Ultimi 30 giorni
+            </option>
+
+            <option value="90">
+                Ultimi 3 mesi
+            </option>
+
+            <option value="180">
+                Ultimi 6 mesi
+            </option>
+
+            <option value="365">
+                Ultimo anno
+            </option>
+
+        </select>
+
     </div>
 
 </header>
@@ -285,39 +480,98 @@
 
     <div class="stat-row">
 
-        
         <div class="stat">
-            <div class="label">Trade chiusi</div>
-            <div class="value" id="statTotal">—</div>
+
+            <div class="label">
+                Trade chiusi
+            </div>
+
+            <div
+                    class="value"
+                    id="statTotal"
+            >
+                —
+            </div>
+
         </div>
 
         <div class="stat">
-            <div class="label">Win rate</div>
-            <div class="value" id="statWinRate">—</div>
+
+            <div class="label">
+                Win rate
+            </div>
+
+            <div
+                    class="value"
+                    id="statWinRate"
+            >
+                —
+            </div>
+
         </div>
 
         <div class="stat">
-            <div class="label">P&L cumulato</div>
-            <div class="value" id="statPnl">—</div>
+
+            <div class="label">
+                P&L cumulato
+            </div>
+
+            <div
+                    class="value"
+                    id="statPnl"
+            >
+                —
+            </div>
+
         </div>
 
         <div class="stat">
-            <div class="label">Profit factor</div>
-            <div class="value" id="statPf">—</div>
+
+            <div class="label">
+                Profit factor
+            </div>
+
+            <div
+                    class="value"
+                    id="statPf"
+            >
+                —
+            </div>
+
         </div>
 
         <div class="stat">
-            <div class="label">Media win / loss</div>
-            <div class="value" id="statAvg">—</div>
+
+            <div class="label">
+                Media win / loss
+            </div>
+
+            <div
+                    class="value"
+                    id="statAvg"
+            >
+                —
+            </div>
+
         </div>
 
         <div class="stat">
-            <div class="label">Miglior / peggior</div>
-            <div class="value" id="statExtreme">—</div>
+
+            <div class="label">
+                Miglior / peggior
+            </div>
+
+            <div
+                    class="value"
+                    id="statExtreme"
+            >
+                —
+            </div>
+
         </div>
-        
 
     </div>
+
 
     <!-- =========================
          EQUITY
@@ -325,20 +579,21 @@
 
     <div class="panel">
 
-        
-        <h2>Curva equity (P&L cumulato per trade)</h2>
+        <h2>
+            Curva equity (P&L cumulato per trade)
+        </h2>
 
         <div class="body">
 
             <canvas
                     id="equityChart"
-                    height="80">
-            </canvas>
+                    height="80"
+            ></canvas>
 
         </div>
-        
 
     </div>
+
 
     <!-- =========================
          TRADE + SIMBOLI
@@ -346,12 +601,16 @@
 
     <div class="grid-2">
 
-        
-        <!-- TRADE -->
+
+        <!-- =========================
+             TRADE
+        ========================== -->
 
         <div class="panel">
 
-            <h2>Trade recenti</h2>
+            <h2>
+                Trade
+            </h2>
 
             <div class="table-wrapper">
 
@@ -360,20 +619,52 @@
                     <thead>
 
                     <tr>
-                        <th>Chiuso il</th>
-                        <th>Simbolo</th>
-                        <th>Lato</th>
-                        <th>Qty</th>
-                        <th>Entry</th>
-                        <th>Exit</th>
-                        <th>Esito</th>
-                        <th>P&L</th>
-                        <th>P&L %</th>
+
+                        <th>#</th>
+
+                        <th>
+                            Chiuso il
+                        </th>
+
+                        <th>
+                            Simbolo
+                        </th>
+
+                        <th>
+                            Lato
+                        </th>
+
+                        <th>
+                            Qty
+                        </th>
+
+                        <th>
+                            Entry
+                        </th>
+
+                        <th>
+                            Exit
+                        </th>
+
+                        <th>
+                            Esito
+                        </th>
+
+                        <th>
+                            P&L
+                        </th>
+
+                        <th>
+                            P&L %
+                        </th>
+
                     </tr>
 
                     </thead>
 
-                    <tbody id="tradesBody"></tbody>
+                    <tbody
+                            id="tradesBody"
+                    ></tbody>
 
                 </table>
 
@@ -384,17 +675,21 @@
                     id="tradesEmpty"
                     style="display:none;"
             >
-                Nessun trade chiuso.
+                Nessun trade chiuso nel periodo selezionato.
             </div>
 
         </div>
 
 
-        <!-- SIMBOLI -->
+        <!-- =========================
+             SIMBOLI
+        ========================== -->
 
         <div class="panel">
 
-            <h2>Per simbolo</h2>
+            <h2>
+                Per simbolo
+            </h2>
 
             <div class="table-wrapper">
 
@@ -403,24 +698,39 @@
                     <thead>
 
                     <tr>
-                        <th>Simbolo</th>
-                        <th>Trade</th>
-                        <th>Win rate</th>
-                        <th>P&L</th>
+
+                        <th>
+                            Simbolo
+                        </th>
+
+                        <th>
+                            Trade
+                        </th>
+
+                        <th>
+                            Win rate
+                        </th>
+
+                        <th>
+                            P&L
+                        </th>
+
                     </tr>
 
                     </thead>
 
-                    <tbody id="symbolsBody"></tbody>
+                    <tbody
+                            id="symbolsBody"
+                    ></tbody>
 
                 </table>
 
             </div>
 
         </div>
-        
 
     </div>
+
 
     <!-- =========================
          POSIZIONI APERTE
@@ -428,8 +738,9 @@
 
     <div class="panel">
 
-        
-        <h2>Posizioni bracket ancora aperte</h2>
+        <h2>
+            Posizioni bracket ancora aperte
+        </h2>
 
         <div class="table-wrapper">
 
@@ -438,18 +749,42 @@
                 <thead>
 
                 <tr>
-                    <th>Aperto il</th>
-                    <th>Simbolo</th>
-                    <th>Lato</th>
-                    <th>Qty</th>
-                    <th>Entry</th>
-                    <th>TP</th>
-                    <th>SL</th>
+
+                    <th>
+                        Aperto il
+                    </th>
+
+                    <th>
+                        Simbolo
+                    </th>
+
+                    <th>
+                        Lato
+                    </th>
+
+                    <th>
+                        Qty
+                    </th>
+
+                    <th>
+                        Entry
+                    </th>
+
+                    <th>
+                        TP
+                    </th>
+
+                    <th>
+                        SL
+                    </th>
+
                 </tr>
 
                 </thead>
 
-                <tbody id="openBody"></tbody>
+                <tbody
+                        id="openBody"
+                ></tbody>
 
             </table>
 
@@ -462,11 +797,11 @@
         >
             Nessuna posizione bracket aperta.
         </div>
-        
 
     </div>
 
 </main>
+
 
 <script>
 
@@ -477,7 +812,13 @@
   const $ = id =>
     document.getElementById(id);
 
+
   let chartInstance = null;
+
+
+  let allClosed = [];
+
+  let allOpen = [];
 
 
   function setStatus(
@@ -485,18 +826,24 @@
     isError = false
   ){
 
-    const el = $('status');
+    const el =
+      $('status');
 
-    el.textContent = message;
+    el.textContent =
+      message;
 
     el.className =
       isError
         ? 'error'
         : '';
+
   }
 
 
   function fmtMoney(n){
+
+    n =
+      Number(n || 0);
 
     const sign =
       n < 0
@@ -508,6 +855,7 @@
       '$' +
       Math.abs(n).toFixed(2)
     );
+
   }
 
 
@@ -538,19 +886,26 @@
         let message =
           `HTTP ${response.status}`;
 
+
         try{
 
           const error =
             await response.json();
 
           if(error.message){
+
             message =
               error.message;
+
           }
 
         }catch(_){}
 
-        throw new Error(message);
+
+        throw new Error(
+          message
+        );
+
       }
 
 
@@ -558,28 +913,38 @@
         await response.json();
 
 
-      const closed =
+      allClosed =
         data.closed || [];
 
-      const open =
+
+      allOpen =
         data.open || [];
 
 
-      renderStats(closed);
+      /*
+       * IMPORTANT:
+       *
+       * Sempre cronologico:
+       *
+       * vecchio -> nuovo
+       *
+       * NON usare reverse().
+       */
 
-      renderEquityChart(closed);
+      allClosed.sort(
+        (a,b) =>
+          new Date(a.closedAt) -
+          new Date(b.closedAt)
+      );
 
-      renderTradesTable(closed);
 
-      renderSymbolsTable(closed);
-
-      renderOpenTable(open);
+      renderDashboard();
 
 
       setStatus(
         `Aggiornato: ${new Date().toLocaleString('it-IT')} — ` +
-        `${closed.length} trade chiusi, ` +
-        `${open.length} posizioni aperte.`
+        `${allClosed.length} trade chiusi, ` +
+        `${allOpen.length} posizioni aperte.`
       );
 
 
@@ -587,8 +952,10 @@
 
       console.error(error);
 
+
       setStatus(
-        'Errore: ' + error.message,
+        'Errore: ' +
+        error.message,
         true
       );
 
@@ -598,10 +965,107 @@
 
 
   /* =========================
+     FILTRO PERIODO
+  ========================= */
+
+  function getFilteredClosed(){
+
+    const period =
+      $('periodSelect').value;
+
+
+    if(
+      period === 'all'
+    ){
+
+      return [
+        ...allClosed
+      ];
+
+    }
+
+
+    const days =
+      Number(period);
+
+
+    const cutoff =
+      Date.now() -
+      (
+        days *
+        24 *
+        60 *
+        60 *
+        1000
+      );
+
+
+    return allClosed.filter(
+      trade =>
+        new Date(
+          trade.closedAt
+        ).getTime()
+        >= cutoff
+    );
+
+  }
+
+
+  /* =========================
+     RENDER DASHBOARD
+  ========================= */
+
+  function renderDashboard(){
+
+    const closed =
+      getFilteredClosed();
+
+
+    /*
+     * closed è SEMPRE:
+     *
+     * vecchio -> nuovo
+     */
+
+    renderStats(
+      closed
+    );
+
+
+    renderEquityChart(
+      closed
+    );
+
+
+    renderTradesTable(
+      closed
+    );
+
+
+    renderSymbolsTable(
+      closed
+    );
+
+
+    /*
+     * Le posizioni aperte
+     * non dipendono dal periodo.
+     */
+
+    renderOpenTable(
+      allOpen
+    );
+
+  }
+
+
+  /* =========================
      STATISTICHE
   ========================= */
 
-  function renderStats(closed){
+  function renderStats(
+    closed
+  ){
 
     const total =
       closed.length;
@@ -609,20 +1073,23 @@
 
     const wins =
       closed.filter(
-        t => t.pnl > 0
+        t =>
+          Number(t.pnl) > 0
       );
 
 
     const losses =
       closed.filter(
-        t => t.pnl <= 0
+        t =>
+          Number(t.pnl) <= 0
       );
 
 
     const totalPnl =
       closed.reduce(
         (sum,t) =>
-          sum + Number(t.pnl || 0),
+          sum +
+          Number(t.pnl || 0),
         0
       );
 
@@ -630,7 +1097,8 @@
     const grossWin =
       wins.reduce(
         (sum,t) =>
-          sum + Number(t.pnl || 0),
+          sum +
+          Number(t.pnl || 0),
         0
       );
 
@@ -639,7 +1107,8 @@
       Math.abs(
         losses.reduce(
           (sum,t) =>
-            sum + Number(t.pnl || 0),
+            sum +
+            Number(t.pnl || 0),
           0
         )
       );
@@ -647,13 +1116,17 @@
 
     const winRate =
       total
-        ? wins.length / total * 100
+        ? (
+        wins.length /
+        total
+      ) * 100
         : 0;
 
 
     const profitFactor =
       grossLoss > 0
-        ? grossWin / grossLoss
+        ? grossWin /
+        grossLoss
         : grossWin > 0
           ? Infinity
           : 0;
@@ -661,13 +1134,15 @@
 
     const avgWin =
       wins.length
-        ? grossWin / wins.length
+        ? grossWin /
+        wins.length
         : 0;
 
 
     const avgLoss =
       losses.length
-        ? grossLoss / losses.length
+        ? grossLoss /
+        losses.length
         : 0;
 
 
@@ -675,7 +1150,10 @@
       total
         ? Math.max(
           ...closed.map(
-            t => Number(t.pnl || 0)
+            t =>
+              Number(
+                t.pnl || 0
+              )
           )
         )
         : 0;
@@ -685,23 +1163,29 @@
       total
         ? Math.min(
           ...closed.map(
-            t => Number(t.pnl || 0)
+            t =>
+              Number(
+                t.pnl || 0
+              )
           )
         )
         : 0;
 
 
-    $('statTotal').textContent =
+    $('statTotal')
+      .textContent =
       total;
 
 
-    $('statWinRate').textContent =
+    $('statWinRate')
+      .textContent =
       total
         ? winRate.toFixed(1) + '%'
         : '—';
 
 
-    $('statWinRate').className =
+    $('statWinRate')
+      .className =
       'value ' +
       (
         winRate >= 50
@@ -710,11 +1194,15 @@
       );
 
 
-    $('statPnl').textContent =
-      fmtMoney(totalPnl);
+    $('statPnl')
+      .textContent =
+      fmtMoney(
+        totalPnl
+      );
 
 
-    $('statPnl').className =
+    $('statPnl')
+      .className =
       'value ' +
       (
         totalPnl >= 0
@@ -723,20 +1211,34 @@
       );
 
 
-    $('statPf').textContent =
-      isFinite(profitFactor)
+    $('statPf')
+      .textContent =
+      isFinite(
+        profitFactor
+      )
         ? profitFactor.toFixed(2)
         : '∞';
 
 
-    $('statAvg').innerHTML =
-      `<span class="up">${fmtMoney(avgWin)}</span> / ` +
-      `<span class="down">-${fmtMoney(avgLoss)}</span>`;
+    $('statAvg')
+      .innerHTML =
+      `<span class="up">${
+        fmtMoney(avgWin)
+      }</span> / ` +
+      `<span class="down">-${
+        fmtMoney(avgLoss)
+      }</span>`;
 
 
-    $('statExtreme').innerHTML =
-      `<span class="up">${fmtMoney(best)}</span> / ` +
-      `<span class="down">${fmtMoney(worst)}</span>`;
+    $('statExtreme')
+      .innerHTML =
+      `<span class="up">${
+        fmtMoney(best)
+      }</span> / ` +
+      `<span class="down">${
+        fmtMoney(worst)
+      }</span>`;
+
   }
 
 
@@ -744,7 +1246,9 @@
      EQUITY CHART
   ========================= */
 
-  function renderEquityChart(closed){
+  function renderEquityChart(
+    closed
+  ){
 
     if(
       typeof Chart ===
@@ -754,26 +1258,46 @@
       throw new Error(
         'Chart.js non è stato caricato.'
       );
+
     }
 
 
     let running = 0;
 
 
+    /*
+     * IMPORTANTE:
+     *
+     * closed è vecchio -> nuovo.
+     *
+     * Quindi la curva equity
+     * viene costruita correttamente.
+     */
+
     const points =
-      closed.map(t => {
+      closed.map(
+        trade => {
 
-        running +=
-          Number(t.pnl || 0);
+          running +=
+            Number(
+              trade.pnl || 0
+            );
 
-        return running;
+          return running;
 
-      });
+        }
+      );
 
+
+    /*
+     * Trade #1 = primo trade
+     * del periodo selezionato.
+     */
 
     const labels =
       closed.map(
-        (_,i) => i + 1
+        (_, index) =>
+          index + 1
       );
 
 
@@ -781,7 +1305,9 @@
 
       chartInstance.destroy();
 
-      chartInstance = null;
+      chartInstance =
+        null;
+
     }
 
 
@@ -835,16 +1361,19 @@
               x:{
 
                 grid:{
-                  color:'#232A32'
+                  color:
+                    '#232A32'
                 },
 
                 ticks:{
 
-                  color:'#7C8790',
+                  color:
+                    '#7C8790',
 
                   font:{
                     family:
                       'IBM Plex Mono',
+
                     size:10
                   }
 
@@ -854,9 +1383,11 @@
 
                   display:true,
 
-                  text:'trade #',
+                  text:
+                    'trade #',
 
-                  color:'#7C8790'
+                  color:
+                    '#7C8790'
 
                 }
 
@@ -865,16 +1396,19 @@
               y:{
 
                 grid:{
-                  color:'#232A32'
+                  color:
+                    '#232A32'
                 },
 
                 ticks:{
 
-                  color:'#7C8790',
+                  color:
+                    '#7C8790',
 
                   font:{
                     family:
                       'IBM Plex Mono',
+
                     size:10
                   },
 
@@ -893,138 +1427,216 @@
 
         }
       );
+
   }
 
 
   /* =========================
-     TRADE
+     TRADE TABLE
   ========================= */
 
-  function renderTradesTable(closed){
+  function renderTradesTable(
+    closed
+  ){
 
     const body =
       $('tradesBody');
 
 
-    body.innerHTML = '';
+    body.innerHTML =
+      '';
 
 
-    const recent =
-      closed
-        .slice(-50)
-        .reverse();
+    /*
+     * Mostriamo gli ultimi 50
+     * trade del periodo.
+     *
+     * MA NON facciamo reverse().
+     *
+     * Rimangono:
+     *
+     * vecchio -> nuovo
+     */
+
+    const visible =
+      closed.slice(-50);
 
 
-    $('tradesEmpty').style.display =
-      recent.length
+    $('tradesEmpty')
+      .style.display =
+      visible.length
         ? 'none'
         : 'block';
 
 
+    /*
+     * Numero globale all'interno
+     * del periodo selezionato.
+     */
+
+    const offset =
+      closed.length -
+      visible.length;
+
+
     for(
-      const t of recent
-      ){
+      let i = 0;
+      i < visible.length;
+      i++
+    ){
+
+      const t =
+        visible[i];
+
 
       const pnl =
-        Number(t.pnl || 0);
+        Number(
+          t.pnl || 0
+        );
 
 
-      const pnlPct =
-        Number.isFinite(
-          Number(t.pnlPct)
+      const entryPrice =
+        Number(
+          t.entryPrice
+        );
+
+
+      const qty =
+        Number(
+          t.qty
+        );
+
+
+      let pnlPct =
+        Number(
+          t.pnlPct
+        );
+
+
+      if(
+        !Number.isFinite(
+          pnlPct
         )
-          ? Number(t.pnlPct)
-          : (
-            Number(t.entryPrice) *
-            Number(t.qty)
-              ? pnl /
+      ){
+
+        pnlPct =
+          entryPrice &&
+          qty
+            ? (
+              pnl /
               (
-                Number(t.entryPrice) *
-                Number(t.qty)
-              ) *
-              100
-              : 0
-          );
+                entryPrice *
+                qty
+              )
+            ) *
+            100
+            : 0;
+
+      }
+
+
+      const tradeNumber =
+        offset +
+        i +
+        1;
 
 
       const tr =
-        document.createElement('tr');
+        document.createElement(
+          'tr'
+        );
 
 
       tr.innerHTML = `
 
-      <td>
-        ${new Date(
+                <td>
+                    ${tradeNumber}
+                </td>
+
+                <td>
+                    ${new Date(
         t.closedAt
-      ).toLocaleString('it-IT')}
-      </td>
+      ).toLocaleString(
+        'it-IT'
+      )}
+                </td>
 
-      <td>
-        ${t.symbol}
-      </td>
+                <td>
+                    ${t.symbol}
+                </td>
 
-      <td class="side-${t.side}">
-        ${t.side}
-      </td>
+                <td class="side-${t.side}">
+                    ${t.side}
+                </td>
 
-      <td>
-        ${t.qty}
-      </td>
+                <td>
+                    ${t.qty}
+                </td>
 
-      <td>
-        ${Number(
-        t.entryPrice
-      ).toFixed(2)}
-      </td>
+                <td>
+                    ${entryPrice.toFixed(
+        2
+      )}
+                </td>
 
-      <td>
-        ${Number(
+                <td>
+                    ${Number(
         t.exitPrice
-      ).toFixed(2)}
-      </td>
+      ).toFixed(
+        2
+      )}
+                </td>
 
-      <td>
+                <td>
 
-        <span
-          class="tag tag-${t.outcome}"
-        >
-          ${
+                    <span
+                        class="tag tag-${t.outcome}"
+                    >
+
+                        ${
         t.outcome === 'tp'
           ? 'TP'
           : 'SL'
       }
-        </span>
 
-      </td>
+                    </span>
 
-      <td class="${
+                </td>
+
+                <td class="${
         pnl >= 0
           ? 'up'
           : 'down'
       }">
 
-        ${fmtMoney(pnl)}
+                    ${fmtMoney(
+        pnl
+      )}
 
-      </td>
+                </td>
 
-      <td class="${
+                <td class="${
         pnlPct >= 0
           ? 'up'
           : 'down'
       }">
 
-        ${
+                    ${
         pnlPct >= 0
           ? '+'
           : ''
-      }${pnlPct.toFixed(2)}%
+      }${pnlPct.toFixed(
+        2
+      )}%
 
-      </td>
+                </td>
 
-    `;
+            `;
 
 
-      body.appendChild(tr);
+      body.appendChild(
+        tr
+      );
 
     }
 
@@ -1035,9 +1647,12 @@
      SIMBOLI
   ========================= */
 
-  function renderSymbolsTable(closed){
+  function renderSymbolsTable(
+    closed
+  ){
 
-    const bySymbol = {};
+    const bySymbol =
+      {};
 
 
     for(
@@ -1061,87 +1676,107 @@
       }
 
 
-      bySymbol[t.symbol].count++;
+      bySymbol[
+        t.symbol
+        ].count++;
 
 
       if(
         Number(t.pnl) > 0
       ){
 
-        bySymbol[t.symbol].wins++;
+        bySymbol[
+          t.symbol
+          ].wins++;
 
       }
 
 
-      bySymbol[t.symbol].pnl +=
-        Number(t.pnl || 0);
+      bySymbol[
+        t.symbol
+        ].pnl +=
+        Number(
+          t.pnl || 0
+        );
 
     }
 
 
     const rows =
       Object.entries(
-          bySymbol
-        )
-        .sort(
-          (a,b) =>
-            b[1].pnl -
-            a[1].pnl
-        );
+        bySymbol
+      ).sort(
+        (a,b) =>
+          b[1].pnl -
+          a[1].pnl
+      );
 
 
     const body =
       $('symbolsBody');
 
 
-    body.innerHTML = '';
+    body.innerHTML =
+      '';
 
 
     for(
-      const [symbol,s]
+      const [
+        symbol,
+        s
+      ]
       of rows
       ){
 
       const winRate =
         s.count
-          ? s.wins /
-          s.count *
-          100
+          ? (
+          s.wins /
+          s.count
+        ) * 100
           : 0;
 
 
       const tr =
-        document.createElement('tr');
+        document.createElement(
+          'tr'
+        );
 
 
       tr.innerHTML = `
 
-      <td>
-        ${symbol}
-      </td>
+                <td>
+                    ${symbol}
+                </td>
 
-      <td>
-        ${s.count}
-      </td>
+                <td>
+                    ${s.count}
+                </td>
 
-      <td>
-        ${winRate.toFixed(0)}%
-      </td>
+                <td>
+                    ${winRate.toFixed(
+        0
+      )}%
+                </td>
 
-      <td class="${
+                <td class="${
         s.pnl >= 0
           ? 'up'
           : 'down'
       }">
 
-        ${fmtMoney(s.pnl)}
+                    ${fmtMoney(
+        s.pnl
+      )}
 
-      </td>
+                </td>
 
-    `;
+            `;
 
 
-      body.appendChild(tr);
+      body.appendChild(
+        tr
+      );
 
     }
 
@@ -1149,19 +1784,23 @@
 
 
   /* =========================
-     POSIZIONI APERTE
+     OPEN POSITIONS
   ========================= */
 
-  function renderOpenTable(open){
+  function renderOpenTable(
+    open
+  ){
 
     const body =
       $('openBody');
 
 
-    body.innerHTML = '';
+    body.innerHTML =
+      '';
 
 
-    $('openEmpty').style.display =
+    $('openEmpty')
+      .style.display =
       open.length
         ? 'none'
         : 'block';
@@ -1172,65 +1811,92 @@
       ){
 
       const tr =
-        document.createElement('tr');
+        document.createElement(
+          'tr'
+        );
 
 
       tr.innerHTML = `
 
-      <td>
-        ${new Date(
+                <td>
+                    ${new Date(
         p.filledAt
-      ).toLocaleString('it-IT')}
-      </td>
+      ).toLocaleString(
+        'it-IT'
+      )}
+                </td>
 
-      <td>
-        ${p.symbol}
-      </td>
+                <td>
+                    ${p.symbol}
+                </td>
 
-      <td class="side-${p.side}">
-        ${p.side}
-      </td>
+                <td class="side-${p.side}">
+                    ${p.side}
+                </td>
 
-      <td>
-        ${p.qty}
-      </td>
+                <td>
+                    ${p.qty}
+                </td>
 
-      <td>
-        ${Number(
+                <td>
+                    ${Number(
         p.entryPrice
-      ).toFixed(2)}
-      </td>
+      ).toFixed(
+        2
+      )}
+                </td>
 
-      <td>
-        ${
+                <td>
+
+                    ${
         p.tp !== null &&
         p.tp !== undefined
           ? Number(
             p.tp
-          ).toFixed(2)
+          ).toFixed(
+            2
+          )
           : '—'
       }
-      </td>
 
-      <td>
-        ${
+                </td>
+
+                <td>
+
+                    ${
         p.sl !== null &&
         p.sl !== undefined
           ? Number(
             p.sl
-          ).toFixed(2)
+          ).toFixed(
+            2
+          )
           : '—'
       }
-      </td>
 
-    `;
+                </td>
+
+            `;
 
 
-      body.appendChild(tr);
+      body.appendChild(
+        tr
+      );
 
     }
 
   }
+
+
+  /* =========================
+     PERIOD CHANGE
+  ========================= */
+
+  $('periodSelect')
+    .addEventListener(
+      'change',
+      renderDashboard
+    );
 
 
   /* =========================
@@ -1245,4 +1911,5 @@
 </script>
 
 </body>
+
 </html>

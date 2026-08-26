@@ -160,13 +160,11 @@ def register_dashboard(app):
         # =========================
 
         closed_trades.sort(
-            key=lambda trade: trade["closedAt"] or "",
-            reverse=True
+            key=lambda trade: trade["closedAt"] or ""
         )
 
         open_trades.sort(
-            key=lambda trade: trade["filledAt"] or "",
-            reverse=True
+            key=lambda trade: trade["filledAt"] or ""
         )
 
         # =========================
