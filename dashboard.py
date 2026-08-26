@@ -48,12 +48,14 @@ def register_dashboard(app):
             if order.order_class != "bracket":
                 continue
 
-            # Entry must have been filled
-            if not order.filled_qty:
+            if not order.filled_qty or not order.filled_avg_price:
                 continue
 
-            entry_qty = float(order.filled_qty)
-            entry_price = float(order.filled_avg_price)
+            try:
+                entry_qty = float(order.filled_qty)
+                entry_price = float(order.filled_avg_price)
+            except (TypeError, ValueError):
+                continue
 
             legs = order.legs or []
 
