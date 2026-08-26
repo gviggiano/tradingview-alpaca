@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Ledger — Trading Dashboard</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+
+    <style>
+
+        :root{
+            --bg:#0B0E11;
+            --panel:#12161B;
+            --panel-2:#171C22;
+            --line:#232A32;
+            --text:#E6E8EB;
+            --muted:#7C8790;
+            --accent:#D6A94A;
+            --profit:#4FB286;
+            --loss:#C9564D;
+            --radius:3px;
+        }
+
+        *{
+            box-sizing:border-box;
+        }
+
+        body{
+            margin:0;
+            background:var(--bg);
+            color:var(--text);
+            font-family:'Inter',sans-serif;
+            -webkit-font-smoothing:antialiased;
+        }
+
+        .mono{
+            font-family:'IBM Plex Mono',monospace;
+            font-variant-numeric:tabular-nums;
+        }
+
+        header{
+            padding:22px 28px 18px;
+            border-bottom:1px solid var(--line);
+            display:flex;
+            align-items:baseline;
+            justify-content:space-between;
+            flex-wrap:wrap;
+            gap:10px;
+        }
+
+        header h1{
+            font-size:15px;
+            letter-spacing:.14em;
+            text-transform:uppercase;
+            margin:0;
+            color:var(--accent);
+            font-weight:600;
+        }
+
+        header .sub{
+            color:var(--muted);
+            font-size:12px;
+            font-family:'IBM Plex Mono',monospace;
+        }
+
+        #status{
+            padding:10px 28px;
+            font-size:12px;
+            color:var(--muted);
+            font-family:'IBM Plex Mono',monospace;
+            min-height:16px;
+        }
+
+        #status.error{
+            color:var(--loss);
+        }
+
+        main{
+            padding:22px 28px 60px;
+        }
+
+        .stat-row{
+            display:grid;
+            grid-template-columns:repeat(6,1fr);
+            gap:1px;
+            background:var(--line);
+            border:1px solid var(--line);
+            margin-bottom:22px;
+        }
+
+        .stat{
+            background:var(--panel);
+            padding:16px 18px;
+        }
+
+        .stat .label{
+            font-size:10px;
+            text-transform:uppercase;
+            letter-spacing:.08em;
+            color:var(--muted);
+            margin-bottom:8px;
+        }
+
+        .stat .value{
+            font-size:22px;
+            font-weight:600;
+            font-family:'IBM Plex Mono',monospace;
+        }
+
+        .up{
+            color:var(--profit);
+        }
+
+        .down{
+            color:var(--loss);
+        }
+
+        .panel{
+            background:var(--panel);
+            border:1px solid var(--line);
+            margin-bottom:22px;
+        }
+
+        .panel h2{
+            font-size:11px;
+            text-transform:uppercase;
+            letter-spacing:.1em;
+            color:var(--muted);
+            margin:0;
+            padding:14px 18px;
+            border-bottom:1px solid var(--line);
+        }
+
+        .panel .body{
+            padding:18px;
+        }
+
+        .grid-2{
+            display:grid;
+            grid-template-columns:1.4fr 1fr;
+            gap:22px;
+        }
+
+        .table-wrapper{
+            overflow-x:auto;
+        }
+
+        table{
+            width:100%;
+            border-collapse:collapse;
+            font-size:12.5px;
+        }
+
+        th{
+            text-align:left;
+            font-size:10px;
+            text-transform:uppercase;
+            letter-spacing:.06em;
+            color:var(--muted);
+            font-weight:500;
+            padding:8px 10px;
+            border-bottom:1px solid var(--line);
+            white-space:nowrap;
+        }
+
+        td{
+            padding:8px 10px;
+            border-bottom:1px solid var(--line);
+            font-family:'IBM Plex Mono',monospace;
+            white-space:nowrap;
+        }
+
+        tr:last-child td{
+            border-bottom:none;
+        }
+
+        .side-buy{
+            color:var(--profit);
+        }
+
+        .side-sell{
+            color:var(--loss);
+        }
+
+        .tag{
+            font-size:10px;
+            padding:2px 6px;
+            border-radius:2px;
+            text-transform:uppercase;
+            letter-spacing:.04em;
+        }
+
+        .tag-tp{
+            background:rgba(79,178,134,.15);
+            color:var(--profit);
+        }
+
+        .tag-sl{
+            background:rgba(201,86,77,.15);
+            color:var(--loss);
+        }
+
+        .empty{
+            color:var(--muted);
+            font-size:12.5px;
+            padding:30px 18px;
+            text-align:center;
+        }
+
+        .loading{
+            padding:40px;
+            text-align:center;
+            color:var(--muted);
+            font-family:'IBM Plex Mono',monospace;
+        }
+
+        @media (max-width:1100px){
+
+            .stat-row{
+                grid-template-columns:repeat(3,1fr);
+            }
+
+        }
+
+        @media (max-width:900px){
+
+            .grid-2{
+                grid-template-columns:1fr;
+            }
+
+        }
+
+        @media (max-width:600px){
+
+            header{
+                padding:18px;
+            }
+
+            #status{
+                padding-left:18px;
+                padding-right:18px;
+            }
+
+            main{
+                padding:18px 12px 40px;
+            }
+
+            .stat-row{
+                grid-template-columns:repeat(2,1fr);
+            }
+
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<header>
+
+    <h1>Ledger</h1>
+
+    <div class="sub">
+        statistiche di esecuzione — Alpaca
+    </div>
+
+</header>
+
+<div id="status">
+    Caricamento dati…
+</div>
+
+<main>
+
+    <!-- =========================
+         STATISTICHE
+    ========================== -->
+
+    <div class="stat-row">
+
+        ```
+        <div class="stat">
+            <div class="label">Trade chiusi</div>
+            <div class="value" id="statTotal">—</div>
+        </div>
+
+        <div class="stat">
+            <div class="label">Win rate</div>
+            <div class="value" id="statWinRate">—</div>
+        </div>
+
+        <div class="stat">
+            <div class="label">P&L cumulato</div>
+            <div class="value" id="statPnl">—</div>
+        </div>
+
+        <div class="stat">
+            <div class="label">Profit factor</div>
+            <div class="value" id="statPf">—</div>
+        </div>
+
+        <div class="stat">
+            <div class="label">Media win / loss</div>
+            <div class="value" id="statAvg">—</div>
+        </div>
+
+        <div class="stat">
+            <div class="label">Miglior / peggior</div>
+            <div class="value" id="statExtreme">—</div>
+        </div>
+        ```
+
+    </div>
+
+    <!-- =========================
+         EQUITY
+    ========================== -->
+
+    <div class="panel">
+
+        ```
+        <h2>Curva equity (P&L cumulato per trade)</h2>
+
+        <div class="body">
+
+            <canvas
+                    id="equityChart"
+                    height="80">
+            </canvas>
+
+        </div>
+        ```
+
+    </div>
+
+    <!-- =========================
+         TRADE + SIMBOLI
+    ========================== -->
+
+    <div class="grid-2">
+
+        ```
+        <!-- TRADE -->
+
+        <div class="panel">
+
+            <h2>Trade recenti</h2>
+
+            <div class="table-wrapper">
+
+                <table>
+
+                    <thead>
+
+                    <tr>
+                        <th>Chiuso il</th>
+                        <th>Simbolo</th>
+                        <th>Lato</th>
+                        <th>Qty</th>
+                        <th>Entry</th>
+                        <th>Exit</th>
+                        <th>Esito</th>
+                        <th>P&L</th>
+                        <th>P&L %</th>
+                    </tr>
+
+                    </thead>
+
+                    <tbody id="tradesBody"></tbody>
+
+                </table>
+
+            </div>
+
+            <div
+                    class="empty"
+                    id="tradesEmpty"
+                    style="display:none;"
+            >
+                Nessun trade chiuso.
+            </div>
+
+        </div>
+
+
+        <!-- SIMBOLI -->
+
+        <div class="panel">
+
+            <h2>Per simbolo</h2>
+
+            <div class="table-wrapper">
+
+                <table>
+
+                    <thead>
+
+                    <tr>
+                        <th>Simbolo</th>
+                        <th>Trade</th>
+                        <th>Win rate</th>
+                        <th>P&L</th>
+                    </tr>
+
+                    </thead>
+
+                    <tbody id="symbolsBody"></tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+        ```
+
+    </div>
+
+    <!-- =========================
+         POSIZIONI APERTE
+    ========================== -->
+
+    <div class="panel">
+
+        ```
+        <h2>Posizioni bracket ancora aperte</h2>
+
+        <div class="table-wrapper">
+
+            <table>
+
+                <thead>
+
+                <tr>
+                    <th>Aperto il</th>
+                    <th>Simbolo</th>
+                    <th>Lato</th>
+                    <th>Qty</th>
+                    <th>Entry</th>
+                    <th>TP</th>
+                    <th>SL</th>
+                </tr>
+
+                </thead>
+
+                <tbody id="openBody"></tbody>
+
+            </table>
+
+        </div>
+
+        <div
+                class="empty"
+                id="openEmpty"
+                style="display:none;"
+        >
+            Nessuna posizione bracket aperta.
+        </div>
+        ```
+
+    </div>
+
+</main>
+
+<script>
+
+  /* =========================
+     UTILITY
+  ========================= */
+
+  const $ = id =>
+    document.getElementById(id);
+
+  let chartInstance = null;
+
+
+  function setStatus(
+    message,
+    isError = false
+  ){
+
+    const el = $('status');
+
+    el.textContent = message;
+
+    el.className =
+      isError
+        ? 'error'
+        : '';
+  }
+
+
+  function fmtMoney(n){
+
+    const sign =
+      n < 0
+        ? '-'
+        : '';
+
+    return (
+      sign +
+      '$' +
+      Math.abs(n).toFixed(2)
+    );
+  }
+
+
+  /* =========================
+     CARICAMENTO DATI
+  ========================= */
+
+  async function loadDashboard(){
+
+    setStatus(
+      'Caricamento dati da Alpaca…'
+    );
+
+    try{
+
+      const response =
+        await fetch(
+          '/dashboard/data',
+          {
+            method:'GET',
+            cache:'no-store'
+          }
+        );
+
+
+      if(!response.ok){
+
+        let message =
+          `HTTP ${response.status}`;
+
+        try{
+
+          const error =
+            await response.json();
+
+          if(error.message){
+            message =
+              error.message;
+          }
+
+        }catch(_){}
+
+        throw new Error(message);
+      }
+
+
+      const data =
+        await response.json();
+
+
+      const closed =
+        data.closed || [];
+
+      const open =
+        data.open || [];
+
+
+      renderStats(closed);
+
+      renderEquityChart(closed);
+
+      renderTradesTable(closed);
+
+      renderSymbolsTable(closed);
+
+      renderOpenTable(open);
+
+
+      setStatus(
+        `Aggiornato: ${new Date().toLocaleString('it-IT')} — ` +
+        `${closed.length} trade chiusi, ` +
+        `${open.length} posizioni aperte.`
+      );
+
+
+    }catch(error){
+
+      console.error(error);
+
+      setStatus(
+        'Errore: ' + error.message,
+        true
+      );
+
+    }
+
+  }
+
+
+  /* =========================
+     STATISTICHE
+  ========================= */
+
+  function renderStats(closed){
+
+    const total =
+      closed.length;
+
+
+    const wins =
+      closed.filter(
+        t => t.pnl > 0
+      );
+
+
+    const losses =
+      closed.filter(
+        t => t.pnl <= 0
+      );
+
+
+    const totalPnl =
+      closed.reduce(
+        (sum,t) =>
+          sum + Number(t.pnl || 0),
+        0
+      );
+
+
+    const grossWin =
+      wins.reduce(
+        (sum,t) =>
+          sum + Number(t.pnl || 0),
+        0
+      );
+
+
+    const grossLoss =
+      Math.abs(
+        losses.reduce(
+          (sum,t) =>
+            sum + Number(t.pnl || 0),
+          0
+        )
+      );
+
+
+    const winRate =
+      total
+        ? wins.length / total * 100
+        : 0;
+
+
+    const profitFactor =
+      grossLoss > 0
+        ? grossWin / grossLoss
+        : grossWin > 0
+          ? Infinity
+          : 0;
+
+
+    const avgWin =
+      wins.length
+        ? grossWin / wins.length
+        : 0;
+
+
+    const avgLoss =
+      losses.length
+        ? grossLoss / losses.length
+        : 0;
+
+
+    const best =
+      total
+        ? Math.max(
+          ...closed.map(
+            t => Number(t.pnl || 0)
+          )
+        )
+        : 0;
+
+
+    const worst =
+      total
+        ? Math.min(
+          ...closed.map(
+            t => Number(t.pnl || 0)
+          )
+        )
+        : 0;
+
+
+    $('statTotal').textContent =
+      total;
+
+
+    $('statWinRate').textContent =
+      total
+        ? winRate.toFixed(1) + '%'
+        : '—';
+
+
+    $('statWinRate').className =
+      'value ' +
+      (
+        winRate >= 50
+          ? 'up'
+          : 'down'
+      );
+
+
+    $('statPnl').textContent =
+      fmtMoney(totalPnl);
+
+
+    $('statPnl').className =
+      'value ' +
+      (
+        totalPnl >= 0
+          ? 'up'
+          : 'down'
+      );
+
+
+    $('statPf').textContent =
+      isFinite(profitFactor)
+        ? profitFactor.toFixed(2)
+        : '∞';
+
+
+    $('statAvg').innerHTML =
+      `<span class="up">${fmtMoney(avgWin)}</span> / ` +
+      `<span class="down">-${fmtMoney(avgLoss)}</span>`;
+
+
+    $('statExtreme').innerHTML =
+      `<span class="up">${fmtMoney(best)}</span> / ` +
+      `<span class="down">${fmtMoney(worst)}</span>`;
+  }
+
+
+  /* =========================
+     EQUITY CHART
+  ========================= */
+
+  function renderEquityChart(closed){
+
+    if(
+      typeof Chart ===
+      'undefined'
+    ){
+
+      throw new Error(
+        'Chart.js non è stato caricato.'
+      );
+    }
+
+
+    let running = 0;
+
+
+    const points =
+      closed.map(t => {
+
+        running +=
+          Number(t.pnl || 0);
+
+        return running;
+
+      });
+
+
+    const labels =
+      closed.map(
+        (_,i) => i + 1
+      );
+
+
+    if(chartInstance){
+
+      chartInstance.destroy();
+
+      chartInstance = null;
+    }
+
+
+    chartInstance =
+      new Chart(
+        $('equityChart'),
+        {
+
+          type:'line',
+
+          data:{
+
+            labels,
+
+            datasets:[{
+
+              data:points,
+
+              borderColor:
+                '#D6A94A',
+
+              backgroundColor:
+                'rgba(214,169,74,0.08)',
+
+              borderWidth:1.5,
+
+              pointRadius:0,
+
+              fill:true,
+
+              tension:0.15
+
+            }]
+
+          },
+
+          options:{
+
+            responsive:true,
+
+            plugins:{
+
+              legend:{
+                display:false
+              }
+
+            },
+
+            scales:{
+
+              x:{
+
+                grid:{
+                  color:'#232A32'
+                },
+
+                ticks:{
+
+                  color:'#7C8790',
+
+                  font:{
+                    family:
+                      'IBM Plex Mono',
+                    size:10
+                  }
+
+                },
+
+                title:{
+
+                  display:true,
+
+                  text:'trade #',
+
+                  color:'#7C8790'
+
+                }
+
+              },
+
+              y:{
+
+                grid:{
+                  color:'#232A32'
+                },
+
+                ticks:{
+
+                  color:'#7C8790',
+
+                  font:{
+                    family:
+                      'IBM Plex Mono',
+                    size:10
+                  },
+
+                  callback:
+                    value =>
+                      '$' +
+                      value
+
+                }
+
+              }
+
+            }
+
+          }
+
+        }
+      );
+  }
+
+
+  /* =========================
+     TRADE
+  ========================= */
+
+  function renderTradesTable(closed){
+
+    const body =
+      $('tradesBody');
+
+
+    body.innerHTML = '';
+
+
+    const recent =
+      closed
+        .slice(-50)
+        .reverse();
+
+
+    $('tradesEmpty').style.display =
+      recent.length
+        ? 'none'
+        : 'block';
+
+
+    for(
+      const t of recent
+      ){
+
+      const pnl =
+        Number(t.pnl || 0);
+
+
+      const pnlPct =
+        Number.isFinite(
+          Number(t.pnlPct)
+        )
+          ? Number(t.pnlPct)
+          : (
+            Number(t.entryPrice) *
+            Number(t.qty)
+              ? pnl /
+              (
+                Number(t.entryPrice) *
+                Number(t.qty)
+              ) *
+              100
+              : 0
+          );
+
+
+      const tr =
+        document.createElement('tr');
+
+
+      tr.innerHTML = `
+
+      <td>
+        ${new Date(
+        t.closedAt
+      ).toLocaleString('it-IT')}
+      </td>
+
+      <td>
+        ${t.symbol}
+      </td>
+
+      <td class="side-${t.side}">
+        ${t.side}
+      </td>
+
+      <td>
+        ${t.qty}
+      </td>
+
+      <td>
+        ${Number(
+        t.entryPrice
+      ).toFixed(2)}
+      </td>
+
+      <td>
+        ${Number(
+        t.exitPrice
+      ).toFixed(2)}
+      </td>
+
+      <td>
+
+        <span
+          class="tag tag-${t.outcome}"
+        >
+          ${
+        t.outcome === 'tp'
+          ? 'TP'
+          : 'SL'
+      }
+        </span>
+
+      </td>
+
+      <td class="${
+        pnl >= 0
+          ? 'up'
+          : 'down'
+      }">
+
+        ${fmtMoney(pnl)}
+
+      </td>
+
+      <td class="${
+        pnlPct >= 0
+          ? 'up'
+          : 'down'
+      }">
+
+        ${
+        pnlPct >= 0
+          ? '+'
+          : ''
+      }${pnlPct.toFixed(2)}%
+
+      </td>
+
+    `;
+
+
+      body.appendChild(tr);
+
+    }
+
+  }
+
+
+  /* =========================
+     SIMBOLI
+  ========================= */
+
+  function renderSymbolsTable(closed){
+
+    const bySymbol = {};
+
+
+    for(
+      const t of closed
+      ){
+
+      if(
+        !bySymbol[t.symbol]
+      ){
+
+        bySymbol[t.symbol] = {
+
+          count:0,
+
+          wins:0,
+
+          pnl:0
+
+        };
+
+      }
+
+
+      bySymbol[t.symbol].count++;
+
+
+      if(
+        Number(t.pnl) > 0
+      ){
+
+        bySymbol[t.symbol].wins++;
+
+      }
+
+
+      bySymbol[t.symbol].pnl +=
+        Number(t.pnl || 0);
+
+    }
+
+
+    const rows =
+      Object.entries(
+          bySymbol
+        )
+        .sort(
+          (a,b) =>
+            b[1].pnl -
+            a[1].pnl
+        );
+
+
+    const body =
+      $('symbolsBody');
+
+
+    body.innerHTML = '';
+
+
+    for(
+      const [symbol,s]
+      of rows
+      ){
+
+      const winRate =
+        s.count
+          ? s.wins /
+          s.count *
+          100
+          : 0;
+
+
+      const tr =
+        document.createElement('tr');
+
+
+      tr.innerHTML = `
+
+      <td>
+        ${symbol}
+      </td>
+
+      <td>
+        ${s.count}
+      </td>
+
+      <td>
+        ${winRate.toFixed(0)}%
+      </td>
+
+      <td class="${
+        s.pnl >= 0
+          ? 'up'
+          : 'down'
+      }">
+
+        ${fmtMoney(s.pnl)}
+
+      </td>
+
+    `;
+
+
+      body.appendChild(tr);
+
+    }
+
+  }
+
+
+  /* =========================
+     POSIZIONI APERTE
+  ========================= */
+
+  function renderOpenTable(open){
+
+    const body =
+      $('openBody');
+
+
+    body.innerHTML = '';
+
+
+    $('openEmpty').style.display =
+      open.length
+        ? 'none'
+        : 'block';
+
+
+    for(
+      const p of open
+      ){
+
+      const tr =
+        document.createElement('tr');
+
+
+      tr.innerHTML = `
+
+      <td>
+        ${new Date(
+        p.filledAt
+      ).toLocaleString('it-IT')}
+      </td>
+
+      <td>
+        ${p.symbol}
+      </td>
+
+      <td class="side-${p.side}">
+        ${p.side}
+      </td>
+
+      <td>
+        ${p.qty}
+      </td>
+
+      <td>
+        ${Number(
+        p.entryPrice
+      ).toFixed(2)}
+      </td>
+
+      <td>
+        ${
+        p.tp !== null &&
+        p.tp !== undefined
+          ? Number(
+            p.tp
+          ).toFixed(2)
+          : '—'
+      }
+      </td>
+
+      <td>
+        ${
+        p.sl !== null &&
+        p.sl !== undefined
+          ? Number(
+            p.sl
+          ).toFixed(2)
+          : '—'
+      }
+      </td>
+
+    `;
+
+
+      body.appendChild(tr);
+
+    }
+
+  }
+
+
+  /* =========================
+     START
+  ========================= */
+
+  document.addEventListener(
+    'DOMContentLoaded',
+    loadDashboard
+  );
+
+</script>
+
+</body>
+</html>

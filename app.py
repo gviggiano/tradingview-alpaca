@@ -8,9 +8,11 @@ import traceback
 from concurrent.futures import ThreadPoolExecutor
 from werkzeug.exceptions import HTTPException
 from cachetools import TTLCache
+from dashboard import register_dashboard
 
 app = Flask(__name__)
 
+register_dashboard(app)
 # --- ENV ---
 ALPACA_API_KEY    = os.environ.get("ALPACA_API_KEY")
 ALPACA_SECRET_KEY = os.environ.get("ALPACA_SECRET_KEY")
