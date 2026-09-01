@@ -26,6 +26,10 @@ def register_dashboard(app):
     def dashboard_page():
         return render_template("dashboard.html")
 
+    @app.route("/montecarlo")
+    def dashboard_page():
+        return render_template("monte_carlo_simulation.html")
+
     # =========================
     # DASHBOARD DATA
     # =========================
