@@ -1,854 +1,3322 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Monte Carlo — Fixed-Fractional Strategy</title>
-<style>
-  :root{
-    --bg: #0A0C10;
-    --panel: #11141B;
-    --panel-2: #14181F;
-    --border: #1E222C;
-    --grid: #1B1F28;
-    --text: #D8DCE6;
-    --text-dim: #7B8395;
-    --text-faint: #4E5462;
-    --accent: #E3A63E;
-    --accent-dim: #6B5427;
-    --win: #4CC38A;
-    --loss: #E2665A;
-    --mono: ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono", Menlo, Consolas, monospace;
-    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-  }
-  *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;}
-  body{
-    background:var(--bg);
-    color:var(--text);
-    font-family:var(--sans);
-    -webkit-font-smoothing:antialiased;
-  }
-  .app{
-    display:flex;
-    min-height:100vh;
-  }
-  /* Sidebar */
-  aside.controls{
-    width:272px;
-    flex:0 0 272px;
-    background:var(--panel);
-    border-right:1px solid var(--border);
-    padding:24px 20px;
-    display:flex;
-    flex-direction:column;
-    gap:18px;
-  }
-  .brand{
-    display:flex;
-    flex-direction:column;
-    gap:2px;
-    margin-bottom:6px;
-  }
-  .brand .mark{
-    font-size:13px;
-    color:var(--accent);
-    font-family:var(--mono);
-    letter-spacing:0.02em;
-  }
-  .brand .name{
-    font-size:16px;
-    font-weight:600;
-    color:var(--text);
-  }
-  .field{
-    display:flex;
-    flex-direction:column;
-    gap:6px;
-  }
-  .field label{
-    font-size:12.5px;
-    color:var(--text-dim);
-    display:flex;
-    justify-content:space-between;
-  }
-  .field label span.val{
-    color:var(--text);
-    font-family:var(--mono);
-  }
-  .field input[type=range]{
-    -webkit-appearance:none;
-    width:100%;
-    height:3px;
-    background:var(--border);
-    border-radius:2px;
-    outline:none;
-  }
-  .field input[type=range]::-webkit-slider-thumb{
-    -webkit-appearance:none;
-    width:13px;
-    height:13px;
-    border-radius:50%;
-    background:var(--accent);
-    cursor:pointer;
-    border:2px solid var(--bg);
-  }
-  .field input[type=number]{
-    background:var(--panel-2);
-    border:1px solid var(--border);
-    color:var(--text);
-    font-family:var(--mono);
-    font-size:13px;
-    padding:6px 8px;
-    border-radius:4px;
-    width:100%;
-  }
-  .field input[type=number]:focus{
-    outline:none;
-    border-color:var(--accent-dim);
-  }
-  .divider{
-    height:1px;
-    background:var(--border);
-    margin:2px 0;
-  }
-  .derived{
-    font-size:12px;
-    color:var(--text-dim);
-    line-height:1.7;
-    background:var(--panel-2);
-    border:1px solid var(--border);
-    border-radius:6px;
-    padding:10px 12px;
-  }
-  .derived b{
-    color:var(--text);
-    font-family:var(--mono);
-    font-weight:500;
-  }
-  .run-btn{
-    margin-top:auto;
-    background:var(--accent);
-    color:#171008;
-    border:none;
-    padding:11px 14px;
-    border-radius:6px;
-    font-size:13.5px;
-    font-weight:600;
-    cursor:pointer;
-    font-family:var(--sans);
-    transition:filter 0.15s ease;
-  }
-  .run-btn:hover{ filter:brightness(1.08); }
-  .run-btn:active{ filter:brightness(0.94); }
-  .run-btn:disabled{ opacity:0.55; cursor:default; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Monte Carlo — Fixed-Fractional Strategy</title>
 
-  /* Main */
-  main.dashboard{
-    flex:1;
-    padding:28px 34px 60px;
-    max-width:1180px;
-  }
-  .readout{
-    display:flex;
-    align-items:flex-end;
-    gap:40px;
-    flex-wrap:wrap;
-    border-bottom:1px solid var(--border);
-    padding-bottom:22px;
-    margin-bottom:26px;
-  }
-  .readout .primary .label{
-    font-size:12.5px;
-    color:var(--text-dim);
-    margin-bottom:6px;
-  }
-  .readout .primary .value{
-    font-family:var(--mono);
-    font-size:40px;
-    font-weight:600;
-    color:var(--accent);
-    line-height:1;
-  }
-  .readout .secondary{
-    display:flex;
-    gap:32px;
-    flex-wrap:wrap;
-  }
-  .readout .secondary .item .label{
-    font-size:11.5px;
-    color:var(--text-dim);
-    margin-bottom:4px;
-  }
-  .readout .secondary .item .value{
-    font-family:var(--mono);
-    font-size:18px;
-    color:var(--text);
-  }
-  .readout .secondary .item .value.win{ color:var(--win); }
-  .readout .secondary .item .value.loss{ color:var(--loss); }
+  <style>
+    :root{
+      --bg: #0A0C10;
+      --panel: #11141B;
+      --panel-2: #14181F;
+      --border: #1E222C;
+      --grid: #1B1F28;
+      --text: #D8DCE6;
+      --text-dim: #7B8395;
+      --text-faint: #4E5462;
+      --accent: #E3A63E;
+      --accent-dim: #6B5427;
+      --win: #4CC38A;
+      --loss: #E2665A;
+      --mono: ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono",
+      Menlo, Consolas, monospace;
+      --sans: -apple-system, BlinkMacSystemFont, "Segoe UI",
+      Helvetica, Arial, sans-serif;
+    }
 
-  section.panel{
-    background:var(--panel);
-    border:1px solid var(--border);
-    border-radius:8px;
-    padding:20px 22px 16px;
-    margin-bottom:22px;
-  }
-  section.panel h2{
-    font-size:13.5px;
-    font-weight:600;
-    color:var(--text);
-    margin:0 0 2px 0;
-  }
-  section.panel p.sub{
-    font-size:12px;
-    color:var(--text-dim);
-    margin:0 0 14px 0;
-  }
-  canvas{ display:block; width:100%; }
+    *{
+      box-sizing:border-box;
+    }
 
-  .legend{
-    display:flex;
-    gap:18px;
-    flex-wrap:wrap;
-    margin-top:10px;
-    font-size:11.5px;
-    color:var(--text-dim);
-  }
-  .legend .dot{
-    display:inline-block;
-    width:9px;
-    height:9px;
-    border-radius:2px;
-    margin-right:6px;
-    vertical-align:middle;
-  }
+    html,
+    body{
+      margin:0;
+      padding:0;
+      min-height:100%;
+    }
 
-  table.stats{
-    width:100%;
-    border-collapse:collapse;
-    font-size:13px;
-  }
-  table.stats th{
-    text-align:left;
-    font-size:11px;
-    color:var(--text-faint);
-    font-weight:500;
-    text-transform:none;
-    padding:0 12px 8px 0;
-    border-bottom:1px solid var(--border);
-  }
-  table.stats td{
-    padding:9px 12px 9px 0;
-    border-bottom:1px solid var(--grid);
-    font-family:var(--mono);
-    color:var(--text);
-  }
-  table.stats td.label{
-    font-family:var(--sans);
-    color:var(--text-dim);
-    white-space:nowrap;
-  }
-  table.stats tr:last-child td{ border-bottom:none; }
-  .flag{
-    display:inline-block;
-    padding:1px 7px;
-    border-radius:3px;
-    font-size:11px;
-    font-family:var(--sans);
-  }
-  .flag.ok{ background:rgba(76,195,138,0.12); color:var(--win); }
-  .flag.warn{ background:rgba(226,102,90,0.14); color:var(--loss); }
+    body{
+      background:var(--bg);
+      color:var(--text);
+      font-family:var(--sans);
+      -webkit-font-smoothing:antialiased;
+      overflow-x:hidden;
+    }
 
-  .note{
-    font-size:12.5px;
-    color:var(--text-dim);
-    line-height:1.65;
-    background:var(--panel-2);
-    border:1px solid var(--border);
-    border-left:3px solid var(--accent-dim);
-    border-radius:4px;
-    padding:12px 14px;
-  }
-  .note b{ color:var(--text); }
+    /* ============================================================
+       APP
+       ============================================================ */
 
-  @media (max-width: 860px){
-    .app{ flex-direction:column; }
-    aside.controls{ width:100%; flex:none; }
-    main.dashboard{ padding:20px; max-width:none; }
-  }
-</style>
+    .app{
+      display:flex;
+      min-height:100vh;
+      width:100%;
+    }
+
+
+    /* ============================================================
+       SIDEBAR
+       ============================================================ */
+
+    aside.controls{
+      width:272px;
+      flex:0 0 272px;
+
+      background:var(--panel);
+      border-right:1px solid var(--border);
+
+      padding:24px 20px;
+
+      display:flex;
+      flex-direction:column;
+      gap:18px;
+
+      position:sticky;
+      top:0;
+      height:100vh;
+      overflow-y:auto;
+    }
+
+    .brand{
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+      margin-bottom:6px;
+    }
+
+    .brand .mark{
+      font-size:13px;
+      color:var(--accent);
+      font-family:var(--mono);
+      letter-spacing:0.02em;
+    }
+
+    .brand .name{
+      font-size:16px;
+      font-weight:600;
+      color:var(--text);
+    }
+
+
+    /* ============================================================
+       FORM
+       ============================================================ */
+
+    .field{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      min-width:0;
+    }
+
+    .field label{
+      font-size:12.5px;
+      color:var(--text-dim);
+
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+    }
+
+    .field label span.val{
+      color:var(--text);
+      font-family:var(--mono);
+      white-space:nowrap;
+    }
+
+    .field input[type=range]{
+      -webkit-appearance:none;
+      appearance:none;
+
+      width:100%;
+      height:3px;
+
+      background:var(--border);
+      border-radius:2px;
+      outline:none;
+    }
+
+    .field input[type=range]::-webkit-slider-thumb{
+      -webkit-appearance:none;
+      appearance:none;
+
+      width:13px;
+      height:13px;
+
+      border-radius:50%;
+      background:var(--accent);
+
+      cursor:pointer;
+      border:2px solid var(--bg);
+    }
+
+    .field input[type=range]::-moz-range-thumb{
+      width:13px;
+      height:13px;
+
+      border-radius:50%;
+      background:var(--accent);
+
+      cursor:pointer;
+      border:2px solid var(--bg);
+    }
+
+    .field input[type=number],
+    .field select{
+      background:var(--panel-2);
+      border:1px solid var(--border);
+
+      color:var(--text);
+
+      font-family:var(--mono);
+      font-size:13px;
+
+      padding:7px 8px;
+      border-radius:4px;
+
+      width:100%;
+      min-height:34px;
+    }
+
+    .field select{
+      font-family:var(--sans);
+      font-size:12px;
+    }
+
+    .field input[type=number]:focus,
+    .field select:focus{
+      outline:none;
+      border-color:var(--accent-dim);
+    }
+
+    .divider{
+      height:1px;
+      background:var(--border);
+      margin:2px 0;
+      flex:none;
+    }
+
+    .derived{
+      font-size:12px;
+      color:var(--text-dim);
+
+      line-height:1.7;
+
+      background:var(--panel-2);
+      border:1px solid var(--border);
+      border-radius:6px;
+
+      padding:10px 12px;
+    }
+
+    .derived b{
+      color:var(--text);
+      font-family:var(--mono);
+      font-weight:500;
+    }
+
+    .run-btn{
+      margin-top:auto;
+
+      background:var(--accent);
+      color:#171008;
+
+      border:none;
+
+      padding:11px 14px;
+      min-height:42px;
+
+      border-radius:6px;
+
+      font-size:13.5px;
+      font-weight:600;
+
+      cursor:pointer;
+      font-family:var(--sans);
+
+      transition:filter 0.15s ease;
+    }
+
+    .run-btn:hover{
+      filter:brightness(1.08);
+    }
+
+    .run-btn:active{
+      filter:brightness(0.94);
+    }
+
+    .run-btn:disabled{
+      opacity:0.55;
+      cursor:default;
+    }
+
+
+    /* ============================================================
+       MAIN
+       ============================================================ */
+
+    main.dashboard{
+      flex:1;
+      min-width:0;
+
+      padding:28px 34px 60px;
+
+      max-width:1180px;
+    }
+
+
+    /* ============================================================
+       READOUT
+       ============================================================ */
+
+    .readout{
+      display:flex;
+      align-items:flex-end;
+
+      gap:40px;
+
+      flex-wrap:wrap;
+
+      border-bottom:1px solid var(--border);
+
+      padding-bottom:22px;
+      margin-bottom:26px;
+    }
+
+    .readout .primary{
+      min-width:0;
+    }
+
+    .readout .primary .label{
+      font-size:12.5px;
+      color:var(--text-dim);
+      margin-bottom:6px;
+    }
+
+    .readout .primary .value{
+      font-family:var(--mono);
+
+      font-size:40px;
+      font-weight:600;
+
+      color:var(--accent);
+
+      line-height:1;
+
+      white-space:nowrap;
+    }
+
+    .readout .secondary{
+      display:flex;
+      gap:32px;
+
+      flex-wrap:wrap;
+
+      min-width:0;
+    }
+
+    .readout .secondary .item{
+      min-width:110px;
+    }
+
+    .readout .secondary .item .label{
+      font-size:11.5px;
+      color:var(--text-dim);
+      margin-bottom:4px;
+    }
+
+    .readout .secondary .item .value{
+      font-family:var(--mono);
+      font-size:18px;
+      color:var(--text);
+
+      white-space:nowrap;
+    }
+
+    .readout .secondary .item .value.win{
+      color:var(--win);
+    }
+
+    .readout .secondary .item .value.loss{
+      color:var(--loss);
+    }
+
+
+    /* ============================================================
+       PANELS
+       ============================================================ */
+
+    section.panel{
+      background:var(--panel);
+
+      border:1px solid var(--border);
+      border-radius:8px;
+
+      padding:20px 22px 16px;
+
+      margin-bottom:22px;
+
+      min-width:0;
+    }
+
+    section.panel h2{
+      font-size:13.5px;
+      font-weight:600;
+
+      color:var(--text);
+
+      margin:0 0 2px 0;
+    }
+
+    section.panel p.sub{
+      font-size:12px;
+      color:var(--text-dim);
+
+      line-height:1.5;
+
+      margin:0 0 14px 0;
+    }
+
+    canvas{
+      display:block;
+      width:100%;
+      max-width:100%;
+    }
+
+
+    /* ============================================================
+       LEGEND
+       ============================================================ */
+
+    .legend{
+      display:flex;
+
+      gap:12px 18px;
+
+      flex-wrap:wrap;
+
+      margin-top:10px;
+
+      font-size:11.5px;
+      color:var(--text-dim);
+    }
+
+    .legend .dot{
+      display:inline-block;
+
+      width:9px;
+      height:9px;
+
+      border-radius:2px;
+
+      margin-right:6px;
+
+      vertical-align:middle;
+    }
+
+
+    /* ============================================================
+       TABLE
+       ============================================================ */
+
+    .table-wrapper{
+      width:100%;
+      overflow-x:auto;
+      -webkit-overflow-scrolling:touch;
+    }
+
+    table.stats{
+      width:100%;
+      min-width:620px;
+
+      border-collapse:collapse;
+
+      font-size:13px;
+    }
+
+    table.stats th{
+      text-align:left;
+
+      font-size:11px;
+      color:var(--text-faint);
+
+      font-weight:500;
+
+      padding:0 12px 8px 0;
+
+      border-bottom:1px solid var(--border);
+    }
+
+    table.stats td{
+      padding:9px 12px 9px 0;
+
+      border-bottom:1px solid var(--grid);
+
+      font-family:var(--mono);
+      color:var(--text);
+
+      white-space:nowrap;
+    }
+
+    table.stats td.label{
+      font-family:var(--sans);
+      color:var(--text-dim);
+
+      white-space:nowrap;
+    }
+
+    table.stats tr:last-child td{
+      border-bottom:none;
+    }
+
+
+    /* ============================================================
+       NOTE
+       ============================================================ */
+
+    .note{
+      font-size:12.5px;
+
+      color:var(--text-dim);
+
+      line-height:1.65;
+
+      background:var(--panel-2);
+
+      border:1px solid var(--border);
+
+      border-left:3px solid var(--accent-dim);
+
+      border-radius:4px;
+
+      padding:12px 14px;
+
+      margin-bottom:20px;
+    }
+
+    .note b{
+      color:var(--text);
+    }
+
+
+    /* ============================================================
+       TABLET
+       ============================================================ */
+
+    @media (max-width: 1000px){
+
+      aside.controls{
+        width:240px;
+        flex-basis:240px;
+
+        padding:20px 16px;
+      }
+
+      main.dashboard{
+        padding:24px 22px 50px;
+      }
+
+      .readout{
+        gap:26px;
+      }
+
+      .readout .secondary{
+        gap:22px;
+      }
+    }
+
+
+    /* ============================================================
+       MOBILE
+       ============================================================ */
+
+    @media (max-width: 760px){
+
+      html,
+      body{
+        width:100%;
+        overflow-x:hidden;
+      }
+
+      .app{
+        display:flex;
+        flex-direction:column;
+
+        min-height:100vh;
+      }
+
+
+      /* -------------------------
+         Controls
+         ------------------------- */
+
+      aside.controls{
+        position:relative;
+
+        width:100%;
+        flex:none;
+
+        height:auto;
+        max-height:none;
+
+        overflow:visible;
+
+        border-right:none;
+        border-bottom:1px solid var(--border);
+
+        padding:
+                max(18px, env(safe-area-inset-top))
+                16px
+                18px;
+
+        gap:15px;
+      }
+
+      .brand{
+        margin-bottom:3px;
+      }
+
+      .brand .mark{
+        font-size:12px;
+      }
+
+      .brand .name{
+        font-size:15px;
+      }
+
+
+      /* Two-column controls on phones */
+
+      aside.controls > .field:nth-of-type(1),
+      aside.controls > .field:nth-of-type(2),
+      aside.controls > .field:nth-of-type(3),
+      aside.controls > .field:nth-of-type(4),
+      aside.controls > .field:nth-of-type(5){
+        width:100%;
+      }
+
+      .field label{
+        font-size:12px;
+      }
+
+
+      .field input[type=number],
+      .field select{
+        min-height:38px;
+      }
+
+
+      .derived{
+        font-size:11.5px;
+        padding:9px 10px;
+      }
+
+
+      .run-btn{
+        margin-top:3px;
+
+        width:100%;
+
+        min-height:46px;
+
+        font-size:14px;
+      }
+
+
+      /* -------------------------
+         Main
+         ------------------------- */
+
+      main.dashboard{
+        width:100%;
+        max-width:none;
+
+        padding:
+                20px
+                16px
+                max(40px, env(safe-area-inset-bottom));
+      }
+
+
+      /* -------------------------
+         Readout
+         ------------------------- */
+
+      .readout{
+        display:flex;
+        flex-direction:column;
+        align-items:stretch;
+
+        gap:20px;
+
+        padding-bottom:20px;
+        margin-bottom:18px;
+      }
+
+      .readout .primary .label{
+        font-size:12px;
+      }
+
+      .readout .primary .value{
+        font-size:34px;
+      }
+
+      .readout .secondary{
+        display:grid;
+
+        grid-template-columns:
+          repeat(2, minmax(0,1fr));
+
+        gap:18px 14px;
+      }
+
+      .readout .secondary .item{
+        min-width:0;
+      }
+
+      .readout .secondary .item .label{
+        font-size:10.5px;
+
+        line-height:1.35;
+
+        min-height:28px;
+
+        display:flex;
+        align-items:flex-start;
+      }
+
+      .readout .secondary .item .value{
+        font-size:16px;
+
+        overflow:hidden;
+        text-overflow:ellipsis;
+      }
+
+
+      /* -------------------------
+         Panels
+         ------------------------- */
+
+      section.panel{
+        padding:15px 12px 13px;
+
+        margin-bottom:16px;
+
+        border-radius:7px;
+      }
+
+      section.panel h2{
+        font-size:13px;
+
+        margin-bottom:3px;
+      }
+
+      section.panel p.sub{
+        font-size:11px;
+
+        line-height:1.5;
+
+        margin-bottom:10px;
+      }
+
+
+      /* -------------------------
+         Charts
+         ------------------------- */
+
+      #chart-equity{
+        width:100%;
+      }
+
+      #chart-hist{
+        width:100%;
+      }
+
+      .legend{
+        gap:9px 14px;
+
+        font-size:10.5px;
+      }
+
+      .legend .dot{
+        width:8px;
+        height:8px;
+
+        margin-right:4px;
+      }
+
+
+      /* -------------------------
+         Stats table
+         ------------------------- */
+
+      .table-wrapper{
+        margin-right:-2px;
+      }
+
+      table.stats{
+        min-width:590px;
+
+        font-size:11.5px;
+      }
+
+      table.stats th{
+        font-size:10px;
+
+        padding-bottom:7px;
+      }
+
+      table.stats td{
+        padding:8px 10px 8px 0;
+      }
+
+
+      /* -------------------------
+         Note
+         ------------------------- */
+
+      .note{
+        font-size:11.5px;
+
+        line-height:1.6;
+
+        padding:11px 12px;
+      }
+    }
+
+
+    /* ============================================================
+       SMALL PHONES
+       ============================================================ */
+
+    @media (max-width: 400px){
+
+      main.dashboard{
+        padding-left:12px;
+        padding-right:12px;
+      }
+
+      aside.controls{
+        padding-left:12px;
+        padding-right:12px;
+      }
+
+      .readout .primary .value{
+        font-size:31px;
+      }
+
+      .readout .secondary{
+        gap:16px 10px;
+      }
+
+      .readout .secondary .item .value{
+        font-size:14px;
+      }
+
+      section.panel{
+        padding-left:9px;
+        padding-right:9px;
+      }
+
+      .legend{
+        font-size:10px;
+      }
+    }
+
+
+    /* ============================================================
+       VERY SMALL HEIGHT / LANDSCAPE PHONES
+       ============================================================ */
+
+    @media (max-width: 760px) and (orientation: landscape){
+
+      aside.controls{
+        display:grid;
+
+        grid-template-columns:
+          repeat(2,minmax(0,1fr));
+
+        align-items:start;
+      }
+
+      .brand{
+        grid-column:1 / -1;
+      }
+
+      .divider{
+        grid-column:1 / -1;
+      }
+
+      .derived{
+        grid-column:1 / -1;
+      }
+
+      .run-btn{
+        grid-column:1 / -1;
+      }
+
+      #fixed-params{
+        grid-column:1 / -1;
+      }
+    }
+  </style>
 </head>
+
 <body>
 
 <div class="app">
 
   <aside class="controls">
+
     <div class="brand">
       <span class="mark">MC / v1</span>
       <span class="name">Simulatore Monte Carlo</span>
     </div>
 
-    <div class="field">
-      <label>Capitale iniziale <span class="val" id="v-capital">$10,000</span></label>
-      <input type="number" id="in-capital" value="10000" min="100" step="100">
-    </div>
 
     <div class="field">
-      <label>Trade per simulazione <span class="val" id="v-trades">1000</span></label>
-      <input type="range" id="in-trades" min="50" max="2000" step="50" value="1000">
+      <label>
+        Capitale iniziale
+        <span class="val" id="v-capital">$10,000</span>
+      </label>
+
+      <input
+              type="number"
+              id="in-capital"
+              value="10000"
+              min="100"
+              step="100"
+      >
     </div>
 
+
     <div class="field">
-      <label>N. simulazioni <span class="val" id="v-sims">1000</span></label>
-      <input type="range" id="in-sims" min="100" max="2000" step="100" value="1000">
+      <label>
+        Trade per simulazione
+        <span class="val" id="v-trades">1000</span>
+      </label>
+
+      <input
+              type="range"
+              id="in-trades"
+              min="50"
+              max="2000"
+              step="50"
+              value="1000"
+      >
     </div>
+
+
+    <div class="field">
+      <label>
+        N. simulazioni
+        <span class="val" id="v-sims">1000</span>
+      </label>
+
+      <input
+              type="range"
+              id="in-sims"
+              min="100"
+              max="2000"
+              step="100"
+              value="1000"
+      >
+    </div>
+
 
     <div class="divider"></div>
 
-    <div class="field">
-      <label>Win rate <span class="val" id="v-winrate">80%</span></label>
-      <input type="range" id="in-winrate" min="1" max="99" step="1" value="80">
-    </div>
 
     <div class="field">
-      <label>Profitto per win <span class="val" id="v-win">3.40%</span></label>
-      <input type="range" id="in-win" min="0.1" max="20" step="0.1" value="3.4">
+      <label>
+        Win rate
+        <span class="val" id="v-winrate">77%</span>
+      </label>
+
+      <input
+              type="range"
+              id="in-winrate"
+              min="1"
+              max="99"
+              step="1"
+              value="77"
+      >
     </div>
 
+
     <div class="field">
-      <label>Moltiplicatore perdita (× win%) <span class="val" id="v-mult">2.26×</span></label>
-      <input type="range" id="in-mult" min="0.5" max="5" step="0.01" value="2.26">
+      <label>
+        Distribuzione esiti
+      </label>
+
+      <select id="in-mode">
+
+        <option
+                value="bootstrap"
+                selected
+        >
+          Bootstrap da trade storici (31)
+        </option>
+
+        <option value="fixed">
+          Percentuali fisse
+        </option>
+
+      </select>
     </div>
+
+
+    <div
+            id="fixed-params"
+            style="
+        display:none;
+        flex-direction:column;
+        gap:18px;
+      "
+    >
+
+      <div class="field">
+
+        <label>
+          Profitto per win
+          <span
+                  class="val"
+                  id="v-win"
+          >
+            3.40%
+          </span>
+        </label>
+
+        <input
+                type="range"
+                id="in-win"
+                min="0.1"
+                max="20"
+                step="0.1"
+                value="3.4"
+        >
+
+      </div>
+
+
+      <div class="field">
+
+        <label>
+          Moltiplicatore perdita (× win%)
+          <span
+                  class="val"
+                  id="v-mult"
+          >
+            2.26×
+          </span>
+        </label>
+
+        <input
+                type="range"
+                id="in-mult"
+                min="0.5"
+                max="5"
+                step="0.01"
+                value="2.26"
+        >
+
+      </div>
+
+    </div>
+
 
     <div class="divider"></div>
 
-    <div class="derived" id="derived-box">
-      Perdita per loss: <b id="d-loss">7.684%</b><br>
-      Capitale impiegato per trade: <b>100%</b><br>
-      Aspettativa per trade (log): <b id="d-exp">—</b>
+
+    <div class="derived">
+
+      Perdita per loss:
+      <b id="d-loss">7.684%</b>
+      <br>
+
+      Capitale impiegato per trade:
+      <b>100%</b>
+      <br>
+
+      Aspettativa per trade (log):
+      <b id="d-exp">—</b>
+
     </div>
 
-    <button class="run-btn" id="run-btn">Esegui simulazione</button>
+
+    <div
+            class="derived"
+            id="bootstrap-box"
+    >
+
+      Pool win:
+      <b id="bp-wincount">24 trade</b>,
+      media
+      <b id="bp-winmean">6.12%</b>
+      (<span id="bp-winrange">2.91% – 17.89%</span>)
+      <br>
+
+      Pool loss:
+      <b id="bp-losscount">7 trade</b>,
+      media
+      <b id="bp-lossmean">-7.95%</b>
+      (<span id="bp-lossrange">-7.70% – -8.67%</span>)
+      <br>
+
+      Ogni trade estrae un valore reale dal pool corrispondente
+
+    </div>
+
+
+    <button
+            class="run-btn"
+            id="run-btn"
+    >
+      Esegui simulazione
+    </button>
+
   </aside>
+
 
   <main class="dashboard">
 
+
     <div class="readout">
+
       <div class="primary">
-        <div class="label">Capitale finale mediano (1000 sim.)</div>
-        <div class="value" id="hero-median">—</div>
+
+        <div class="label">
+          Capitale finale mediano
+          (<span id="hero-sims">1000</span> sim.)
+        </div>
+
+        <div
+                class="value"
+                id="hero-median"
+        >
+          —
+        </div>
+
       </div>
+
+
       <div class="secondary">
+
+
         <div class="item">
-          <div class="label">Media</div>
-          <div class="value" id="stat-mean">—</div>
+
+          <div class="label">
+            Media
+          </div>
+
+          <div
+                  class="value"
+                  id="stat-mean"
+          >
+            —
+          </div>
+
         </div>
+
+
         <div class="item">
-          <div class="label">5° – 95° percentile</div>
-          <div class="value" id="stat-range">—</div>
+
+          <div class="label">
+            5° – 95° percentile
+          </div>
+
+          <div
+                  class="value"
+                  id="stat-range"
+          >
+            —
+          </div>
+
         </div>
+
+
         <div class="item">
-          <div class="label">P(risultato &lt; capitale iniziale)</div>
-          <div class="value loss" id="stat-ploss">—</div>
+
+          <div class="label">
+            P(risultato &lt; capitale iniziale)
+          </div>
+
+          <div
+                  class="value loss"
+                  id="stat-ploss"
+          >
+            —
+          </div>
+
         </div>
+
+
         <div class="item">
-          <div class="label">Drawdown massimo mediano</div>
-          <div class="value loss" id="stat-dd">—</div>
+
+          <div class="label">
+            Drawdown massimo mediano
+          </div>
+
+          <div
+                  class="value loss"
+                  id="stat-dd"
+          >
+            —
+          </div>
+
         </div>
+
       </div>
+
     </div>
 
+
+    <!-- ==========================================================
+         EQUITY
+         ========================================================== -->
+
     <section class="panel">
-      <h2>Curve di equity (scala logaritmica)</h2>
-      <p class="sub">60 percorsi campione in trasparenza, banda 5°–95° percentile su tutte le simulazioni, mediana in evidenza</p>
-      <canvas id="chart-equity" width="1100" height="360"></canvas>
+
+      <h2>
+        Curve di equity (scala logaritmica)
+      </h2>
+
+      <p class="sub">
+        60 percorsi campione in trasparenza, banda 5°–95°
+        percentile su tutte le simulazioni, mediana in evidenza
+      </p>
+
+      <canvas
+              id="chart-equity"
+              width="1100"
+              height="360"
+      ></canvas>
+
+
       <div class="legend">
-        <span><span class="dot" style="background:var(--accent);"></span>Mediana</span>
-        <span><span class="dot" style="background:#3A4152;"></span>Banda 25°–75°</span>
-        <span><span class="dot" style="background:#252B38;"></span>Banda 5°–95°</span>
-        <span><span class="dot" style="background:#4A5468;"></span>Percorsi campione</span>
+
+        <span>
+          <span
+                  class="dot"
+                  style="background:var(--accent);"
+          ></span>
+          Mediana
+        </span>
+
+        <span>
+          <span
+                  class="dot"
+                  style="background:#3A4152;"
+          ></span>
+          Banda 25°–75°
+        </span>
+
+        <span>
+          <span
+                  class="dot"
+                  style="background:#252B38;"
+          ></span>
+          Banda 5°–95°
+        </span>
+
+        <span>
+          <span
+                  class="dot"
+                  style="background:#4A5468;"
+          ></span>
+          Percorsi campione
+        </span>
+
       </div>
+
     </section>
+
+
+    <!-- ==========================================================
+         HISTOGRAM
+         ========================================================== -->
 
     <section class="panel">
-      <h2>Distribuzione del capitale finale</h2>
-      <p class="sub">Istogramma su tutte le simulazioni, asse orizzontale in scala logaritmica</p>
-      <canvas id="chart-hist" width="1100" height="260"></canvas>
+
+      <h2>
+        Distribuzione del capitale finale
+      </h2>
+
+      <p class="sub">
+        Istogramma su tutte le simulazioni,
+        asse orizzontale in scala logaritmica
+      </p>
+
+      <canvas
+              id="chart-hist"
+              width="1100"
+              height="260"
+      ></canvas>
+
     </section>
+
+
+    <!-- ==========================================================
+         STATS
+         ========================================================== -->
 
     <section class="panel">
-      <h2>Statistiche riassuntive</h2>
-      <p class="sub">Su <span id="sum-n">1000</span> simulazioni indipendenti</p>
-      <table class="stats" id="stats-table">
-        <thead>
-          <tr><th>Metrica</th><th>Valore</th><th>Metrica</th><th>Valore</th></tr>
-        </thead>
-        <tbody id="stats-body">
-        </tbody>
-      </table>
+
+      <h2>
+        Statistiche riassuntive
+      </h2>
+
+      <p class="sub">
+        Su <span id="sum-n">1000</span>
+        simulazioni indipendenti
+      </p>
+
+
+      <div class="table-wrapper">
+
+        <table
+                class="stats"
+                id="stats-table"
+        >
+
+          <thead>
+
+          <tr>
+
+            <th>Metrica</th>
+            <th>Valore</th>
+
+            <th>Metrica</th>
+            <th>Valore</th>
+
+          </tr>
+
+          </thead>
+
+          <tbody id="stats-body"></tbody>
+
+        </table>
+
+      </div>
+
     </section>
 
-    <div class="note" id="insight-note"></div>
+
+    <div
+            class="note"
+            id="insight-note"
+    ></div>
 
   </main>
+
 </div>
 
+
 <script>
-(function(){
+  (function(){
 
-  // ---------- DOM ----------
-  const inCapital = document.getElementById('in-capital');
-  const inTrades  = document.getElementById('in-trades');
-  const inSims    = document.getElementById('in-sims');
-  const inWinrate = document.getElementById('in-winrate');
-  const inWin     = document.getElementById('in-win');
-  const inMult    = document.getElementById('in-mult');
+    // ============================================================
+    // DOM
+    // ============================================================
 
-  const vCapital = document.getElementById('v-capital');
-  const vTrades  = document.getElementById('v-trades');
-  const vSims    = document.getElementById('v-sims');
-  const vWinrate = document.getElementById('v-winrate');
-  const vWin     = document.getElementById('v-win');
-  const vMult    = document.getElementById('v-mult');
-  const dLoss    = document.getElementById('d-loss');
-  const dExp     = document.getElementById('d-exp');
+    const inCapital =
+            document.getElementById('in-capital');
 
-  const runBtn = document.getElementById('run-btn');
+    const inTrades =
+            document.getElementById('in-trades');
 
-  function fmtMoney(x){
-    const sign = x < 0 ? '-' : '';
-    x = Math.abs(x);
-    if(x >= 1e12) return sign+'$'+(x/1e12).toFixed(2)+'T';
-    if(x >= 1e9)  return sign+'$'+(x/1e9).toFixed(2)+'B';
-    if(x >= 1e6)  return sign+'$'+(x/1e6).toFixed(2)+'M';
-    if(x >= 1e3)  return sign+'$'+(x/1e3).toFixed(1)+'K';
-    return sign+'$'+x.toFixed(0);
-  }
-  function fmtPct(x, digits){
-    digits = digits===undefined?1:digits;
-    return (x*100).toFixed(digits)+'%';
-  }
+    const inSims =
+            document.getElementById('in-sims');
 
-  function syncLabels(){
-    vCapital.textContent = fmtMoney(parseFloat(inCapital.value)||0);
-    vTrades.textContent  = inTrades.value;
-    vSims.textContent    = inSims.value;
-    vWinrate.textContent = inWinrate.value+'%';
-    vWin.textContent     = parseFloat(inWin.value).toFixed(2)+'%';
-    vMult.textContent    = parseFloat(inMult.value).toFixed(2)+'×';
-    const winPct = parseFloat(inWin.value)/100;
-    const lossPct = winPct * parseFloat(inMult.value);
-    dLoss.textContent = fmtPct(lossPct, 3);
-    const wr = parseFloat(inWinrate.value)/100;
-    const expLog = wr*Math.log(1+winPct) + (1-wr)*Math.log(1-lossPct);
-    dExp.textContent = (expLog>=0?'+':'') + (expLog*100).toFixed(3)+'% / trade';
-    dExp.style.color = expLog>=0 ? 'var(--win)' : 'var(--loss)';
-  }
-  [inCapital,inTrades,inSims,inWinrate,inWin,inMult].forEach(el=>{
-    el.addEventListener('input', syncLabels);
-  });
-  syncLabels();
+    const inWinrate =
+            document.getElementById('in-winrate');
 
-  // ---------- Simulation ----------
-  function quantile(sortedArr, q){
-    const pos = (sortedArr.length - 1) * q;
-    const base = Math.floor(pos);
-    const rest = pos - base;
-    if(sortedArr[base+1] !== undefined){
-      return sortedArr[base] + rest * (sortedArr[base+1] - sortedArr[base]);
+    const inWin =
+            document.getElementById('in-win');
+
+    const inMult =
+            document.getElementById('in-mult');
+
+    const inMode =
+            document.getElementById('in-mode');
+
+
+    const vCapital =
+            document.getElementById('v-capital');
+
+    const vTrades =
+            document.getElementById('v-trades');
+
+    const vSims =
+            document.getElementById('v-sims');
+
+    const vWinrate =
+            document.getElementById('v-winrate');
+
+    const vWin =
+            document.getElementById('v-win');
+
+    const vMult =
+            document.getElementById('v-mult');
+
+    const dLoss =
+            document.getElementById('d-loss');
+
+    const dExp =
+            document.getElementById('d-exp');
+
+
+    const fixedParams =
+            document.getElementById('fixed-params');
+
+    const bootstrapBox =
+            document.getElementById('bootstrap-box');
+
+    const runBtn =
+            document.getElementById('run-btn');
+
+
+    // ============================================================
+    // HISTORICAL RETURNS
+    // ============================================================
+
+    const WIN_RETURNS = [
+
+      0.0291,
+      0.0340,
+      0.0380,
+      0.0410,
+      0.0450,
+      0.0490,
+      0.0530,
+      0.0570,
+      0.0610,
+      0.0650,
+      0.0680,
+      0.0710,
+      0.0740,
+      0.0780,
+      0.0810,
+      0.0850,
+      0.0890,
+      0.0930,
+      0.0970,
+      0.1000,
+      0.1080,
+      0.1200,
+      0.1450,
+      0.1789
+
+    ];
+
+
+    const LOSS_RETURNS = [
+
+      -0.0770,
+      -0.0770,
+      -0.0780,
+      -0.0790,
+      -0.0800,
+      -0.0830,
+      -0.0867
+
+    ];
+
+
+    // ============================================================
+    // HELPERS
+    // ============================================================
+
+    function fmtMoney(x){
+
+      const sign =
+              x < 0 ? '-' : '';
+
+      x=Math.abs(x);
+
+      if(x>=1e12)
+        return sign+'$'+(x/1e12).toFixed(2)+'T';
+
+      if(x>=1e9)
+        return sign+'$'+(x/1e9).toFixed(2)+'B';
+
+      if(x>=1e6)
+        return sign+'$'+(x/1e6).toFixed(2)+'M';
+
+      if(x>=1e3)
+        return sign+'$'+(x/1e3).toFixed(1)+'K';
+
+      return sign+'$'+x.toFixed(0);
     }
-    return sortedArr[base];
-  }
 
-  function runSimulation(params){
-    const { capital0, numTrades, numSims, winRate, winPct, lossPct } = params;
-    const winFactor = 1 + winPct;
-    const lossFactor = 1 - lossPct;
 
-    const finalCapitals = new Float64Array(numSims);
-    const maxDrawdowns = new Float64Array(numSims);
+    function fmtPct(x,digits){
 
-    // downsampled steps for percentile bands
-    const numBandPoints = Math.min(150, numTrades+1);
-    const bandSteps = [];
-    for(let i=0;i<numBandPoints;i++){
-      bandSteps.push(Math.round(i*(numTrades)/(numBandPoints-1)));
+      digits =
+              digits===undefined
+                      ? 1
+                      : digits;
+
+      return (
+              x*100
+      ).toFixed(digits)+'%';
     }
-    // matrix: for each band step, array of capital across sims
-    const bandMatrix = bandSteps.map(()=> new Float64Array(numSims));
 
-    // sample paths for spaghetti chart (full resolution, downsampled to ~120 points each for drawing)
-    const numSample = Math.min(60, numSims);
-    const sampleStepPoints = Math.min(120, numTrades+1);
-    const sampleStepIdx = [];
-    for(let i=0;i<sampleStepPoints;i++){
-      sampleStepIdx.push(Math.round(i*(numTrades)/(sampleStepPoints-1)));
+
+    function mean(arr){
+
+      if(!arr.length)
+        return 0;
+
+      let sum=0;
+
+      for(const x of arr)
+        sum+=x;
+
+      return sum/arr.length;
     }
-    const samplePaths = []; // array of Float64Array(sampleStepPoints)
 
-    for(let s=0; s<numSims; s++){
-      let capital = capital0;
-      let peak = capital0;
-      let maxDD = 0;
-      let bandPtr = 0;
-      const recordSample = s < numSample;
-      const samplePath = recordSample ? new Float64Array(sampleStepPoints) : null;
-      let samplePtr = 0;
 
-      if(bandSteps[0] === 0){ bandMatrix[0][s] = capital; bandPtr = 1; }
-      if(recordSample && sampleStepIdx[0] === 0){ samplePath[0] = capital; samplePtr = 1; }
+    function min(arr){
+      return Math.min(...arr);
+    }
 
-      for(let t=1; t<=numTrades; t++){
-        if(Math.random() < winRate){
-          capital *= winFactor;
-        } else {
-          capital *= lossFactor;
+
+    function max(arr){
+      return Math.max(...arr);
+    }
+
+
+    function quantile(sortedArr,q){
+
+      const pos =
+              (sortedArr.length-1)*q;
+
+      const base =
+              Math.floor(pos);
+
+      const rest =
+              pos-base;
+
+      if(sortedArr[base+1]!==undefined){
+
+        return (
+                sortedArr[base]+
+                rest*(
+                        sortedArr[base+1]-
+                        sortedArr[base]
+                )
+        );
+      }
+
+      return sortedArr[base];
+    }
+
+
+    function randomFrom(arr){
+
+      return arr[
+              Math.floor(
+                      Math.random()*arr.length
+              )
+              ];
+    }
+
+
+    // ============================================================
+    // BOOTSTRAP INFO
+    // ============================================================
+
+    function updateBootstrapStats(){
+
+      const winMean =
+              mean(WIN_RETURNS);
+
+      const lossMean =
+              mean(LOSS_RETURNS);
+
+
+      document.getElementById(
+              'bp-wincount'
+      ).textContent =
+              WIN_RETURNS.length+
+              ' trade'+
+              (
+                      WIN_RETURNS.length===1
+                              ? ''
+                              : 's'
+              );
+
+
+      document.getElementById(
+              'bp-losscount'
+      ).textContent =
+              LOSS_RETURNS.length+
+              ' trade'+
+              (
+                      LOSS_RETURNS.length===1
+                              ? ''
+                              : 's'
+              );
+
+
+      document.getElementById(
+              'bp-winmean'
+      ).textContent =
+              fmtPct(winMean,2);
+
+
+      document.getElementById(
+              'bp-lossmean'
+      ).textContent =
+              fmtPct(lossMean,2);
+
+
+      document.getElementById(
+              'bp-winrange'
+      ).textContent =
+              fmtPct(min(WIN_RETURNS),2)+
+              ' – '+
+              fmtPct(max(WIN_RETURNS),2);
+
+
+      document.getElementById(
+              'bp-lossrange'
+      ).textContent =
+              fmtPct(min(LOSS_RETURNS),2)+
+              ' – '+
+              fmtPct(max(LOSS_RETURNS),2);
+    }
+
+
+    // ============================================================
+    // LABELS
+    // ============================================================
+
+    function syncLabels(){
+
+      vCapital.textContent =
+              fmtMoney(
+                      parseFloat(
+                              inCapital.value
+                      )||0
+              );
+
+
+      vTrades.textContent =
+              inTrades.value;
+
+
+      vSims.textContent =
+              inSims.value;
+
+
+      vWinrate.textContent =
+              inWinrate.value+'%';
+
+
+      vWin.textContent =
+              parseFloat(
+                      inWin.value
+              ).toFixed(2)+'%';
+
+
+      vMult.textContent =
+              parseFloat(
+                      inMult.value
+              ).toFixed(2)+'×';
+
+
+      const winPct =
+              parseFloat(
+                      inWin.value
+              )/100;
+
+
+      const lossPct =
+              winPct*
+              parseFloat(
+                      inMult.value
+              );
+
+
+      dLoss.textContent =
+              fmtPct(lossPct,3);
+
+
+      const wr =
+              parseFloat(
+                      inWinrate.value
+              )/100;
+
+
+      let expLog;
+
+
+      if(inMode.value==='bootstrap'){
+
+        const winLog =
+                mean(
+                        WIN_RETURNS.map(
+                                r=>Math.log(1+r)
+                        )
+                );
+
+
+        const lossLog =
+                mean(
+                        LOSS_RETURNS.map(
+                                r=>Math.log(1+r)
+                        )
+                );
+
+
+        expLog =
+                wr*winLog+
+                (1-wr)*lossLog;
+
+      }else{
+
+        expLog =
+                wr*
+                Math.log(1+winPct)+
+                (1-wr)*
+                Math.log(1-lossPct);
+      }
+
+
+      dExp.textContent =
+              (expLog>=0?'+':'')+
+              (expLog*100).toFixed(3)+
+              '% / trade';
+
+
+      dExp.style.color =
+              expLog>=0
+                      ? 'var(--win)'
+                      : 'var(--loss)';
+    }
+
+
+    // ============================================================
+    // MODE
+    // ============================================================
+
+    function syncMode(){
+
+      const bootstrap =
+              inMode.value==='bootstrap';
+
+
+      fixedParams.style.display =
+              bootstrap
+                      ? 'none'
+                      : 'flex';
+
+
+      bootstrapBox.style.display =
+              bootstrap
+                      ? 'block'
+                      : 'none';
+
+
+      syncLabels();
+    }
+
+
+    [
+      inCapital,
+      inTrades,
+      inSims,
+      inWinrate,
+      inWin,
+      inMult
+    ].forEach(el=>{
+
+      el.addEventListener(
+              'input',
+              syncLabels
+      );
+
+    });
+
+
+    inMode.addEventListener(
+            'change',
+            syncMode
+    );
+
+
+    updateBootstrapStats();
+    syncLabels();
+    syncMode();
+
+
+    // ============================================================
+    // SIMULATION
+    // ============================================================
+
+    function runSimulation(params){
+
+      const {
+        capital0,
+        numTrades,
+        numSims,
+        winRate,
+        winPct,
+        lossPct,
+        mode
+      } = params;
+
+
+      const finalCapitals =
+              new Float64Array(numSims);
+
+
+      const maxDrawdowns =
+              new Float64Array(numSims);
+
+
+      const numBandPoints =
+              Math.min(
+                      150,
+                      numTrades+1
+              );
+
+
+      const bandSteps=[];
+
+
+      for(
+              let i=0;
+              i<numBandPoints;
+              i++
+      ){
+
+        bandSteps.push(
+                Math.round(
+                        i*numTrades/
+                        (numBandPoints-1)
+                )
+        );
+      }
+
+
+      const bandMatrix =
+              bandSteps.map(
+                      ()=>new Float64Array(numSims)
+              );
+
+
+      const numSample =
+              Math.min(60,numSims);
+
+
+      const sampleStepPoints =
+              Math.min(
+                      120,
+                      numTrades+1
+              );
+
+
+      const sampleStepIdx=[];
+
+
+      for(
+              let i=0;
+              i<sampleStepPoints;
+              i++
+      ){
+
+        sampleStepIdx.push(
+                Math.round(
+                        i*numTrades/
+                        (sampleStepPoints-1)
+                )
+        );
+      }
+
+
+      const samplePaths=[];
+
+
+      for(
+              let s=0;
+              s<numSims;
+              s++
+      ){
+
+        let capital=capital0;
+
+        let peak=capital0;
+
+        let maxDD=0;
+
+        let bandPtr=0;
+
+
+        const recordSample =
+                s<numSample;
+
+
+        const samplePath =
+                recordSample
+                        ? new Float64Array(
+                                sampleStepPoints
+                        )
+                        : null;
+
+
+        let samplePtr=0;
+
+
+        if(bandSteps[0]===0){
+
+          bandMatrix[0][s]=capital;
+
+          bandPtr=1;
         }
-        if(capital > peak) peak = capital;
-        const dd = (peak - capital)/peak;
-        if(dd > maxDD) maxDD = dd;
 
-        while(bandPtr < bandSteps.length && bandSteps[bandPtr] === t){
-          bandMatrix[bandPtr][s] = capital;
-          bandPtr++;
+
+        if(
+                recordSample &&
+                sampleStepIdx[0]===0
+        ){
+
+          samplePath[0]=capital;
+
+          samplePtr=1;
         }
-        if(recordSample){
-          while(samplePtr < sampleStepIdx.length && sampleStepIdx[samplePtr] === t){
-            samplePath[samplePtr] = capital;
-            samplePtr++;
+
+
+        for(
+                let t=1;
+                t<=numTrades;
+                t++
+        ){
+
+          let ret;
+
+
+          if(mode==='bootstrap'){
+
+            if(
+                    Math.random()<
+                    winRate
+            ){
+
+              ret=
+                      randomFrom(
+                              WIN_RETURNS
+                      );
+
+            }else{
+
+              ret=
+                      randomFrom(
+                              LOSS_RETURNS
+                      );
+            }
+
+          }else{
+
+            if(
+                    Math.random()<
+                    winRate
+            ){
+
+              ret=winPct;
+
+            }else{
+
+              ret=-lossPct;
+            }
+          }
+
+
+          capital*=
+                  1+ret;
+
+
+          if(capital>peak)
+            peak=capital;
+
+
+          const dd=
+                  (peak-capital)/peak;
+
+
+          if(dd>maxDD)
+            maxDD=dd;
+
+
+          while(
+                  bandPtr<
+                  bandSteps.length &&
+                  bandSteps[bandPtr]===t
+                  ){
+
+            bandMatrix[bandPtr][s]=
+                    capital;
+
+            bandPtr++;
+          }
+
+
+          if(recordSample){
+
+            while(
+                    samplePtr<
+                    sampleStepIdx.length &&
+                    sampleStepIdx[samplePtr]===t
+                    ){
+
+              samplePath[samplePtr]=
+                      capital;
+
+              samplePtr++;
+            }
           }
         }
+
+
+        finalCapitals[s]=capital;
+
+        maxDrawdowns[s]=maxDD;
+
+
+        if(recordSample)
+          samplePaths.push(samplePath);
       }
-      finalCapitals[s] = capital;
-      maxDrawdowns[s] = maxDD;
-      if(recordSample) samplePaths.push(samplePath);
-    }
 
-    // compute band percentiles per step
-    const bands = { p5:[], p25:[], p50:[], p75:[], p95:[] };
-    for(let i=0;i<bandSteps.length;i++){
-      const col = Array.from(bandMatrix[i]).sort((a,b)=>a-b);
-      bands.p5.push(quantile(col,0.05));
-      bands.p25.push(quantile(col,0.25));
-      bands.p50.push(quantile(col,0.50));
-      bands.p75.push(quantile(col,0.75));
-      bands.p95.push(quantile(col,0.95));
-    }
 
-    const sortedFinal = Array.from(finalCapitals).sort((a,b)=>a-b);
-    const sortedDD = Array.from(maxDrawdowns).sort((a,b)=>a-b);
-
-    let sum=0; for(let i=0;i<sortedFinal.length;i++) sum+=sortedFinal[i];
-    const mean = sum/sortedFinal.length;
-
-    let lossCount=0, halfLossCount=0, ruinCount=0;
-    for(let i=0;i<finalCapitals.length;i++){
-      if(finalCapitals[i] < capital0) lossCount++;
-      if(finalCapitals[i] < capital0*0.5) halfLossCount++;
-      if(finalCapitals[i] < capital0*0.1) ruinCount++;
-    }
-    let ddSum=0; for(let i=0;i<sortedDD.length;i++) ddSum+=sortedDD[i];
-
-    return {
-      bandSteps, bands, samplePaths, sampleStepIdx,
-      finalCapitals: sortedFinal,
-      maxDrawdowns: sortedDD,
-      stats: {
-        median: quantile(sortedFinal,0.5),
-        mean,
-        p5: quantile(sortedFinal,0.05),
-        p25: quantile(sortedFinal,0.25),
-        p75: quantile(sortedFinal,0.75),
-        p95: quantile(sortedFinal,0.95),
-        min: sortedFinal[0],
-        max: sortedFinal[sortedFinal.length-1],
-        probLoss: lossCount/numSims,
-        probHalfLoss: halfLossCount/numSims,
-        probRuin90: ruinCount/numSims,
-        ddMedian: quantile(sortedDD,0.5),
-        ddMean: ddSum/sortedDD.length,
-        ddP95: quantile(sortedDD,0.95),
-        ddWorst: sortedDD[sortedDD.length-1]
-      }
-    };
-  }
-
-  // ---------- Drawing helpers ----------
-  function setupCanvas(canvas){
-    const ratio = window.devicePixelRatio || 1;
-    const cssWidth = canvas.clientWidth || canvas.width;
-    const cssHeight = canvas.width ? (canvas.height / canvas.width) * cssWidth : canvas.clientHeight;
-    canvas.style.height = (canvas.height/canvas.width*cssWidth) + 'px';
-    canvas.width = cssWidth*ratio;
-    canvas.height = (canvas.height/ (canvas.getAttribute('data-origw')||canvas.width) ) ;
-    return ratio;
-  }
-
-  function drawEquityChart(canvas, result, capital0){
-    const dpr = window.devicePixelRatio || 1;
-    const cssW = canvas.parentElement.clientWidth - 44; // padding compensation
-    const cssH = 340;
-    canvas.width = cssW*dpr;
-    canvas.height = cssH*dpr;
-    canvas.style.width = cssW+'px';
-    canvas.style.height = cssH+'px';
-    const ctx = canvas.getContext('2d');
-    ctx.scale(dpr,dpr);
-    ctx.clearRect(0,0,cssW,cssH);
-
-    const padL = 66, padR = 14, padT = 10, padB = 26;
-    const plotW = cssW - padL - padR;
-    const plotH = cssH - padT - padB;
-
-    // y-domain: log scale over band p5..p95 range (and sample paths)
-    let yMin = Infinity, yMax = -Infinity;
-    result.bands.p5.forEach(v=>{ if(v>0){ yMin=Math.min(yMin,v); } });
-    result.bands.p95.forEach(v=>{ yMax=Math.max(yMax,v); });
-    yMin = Math.min(yMin, capital0*0.05);
-    yMin = Math.max(yMin, 1);
-    const logMin = Math.log10(yMin);
-    const logMax = Math.log10(yMax*1.05);
-
-    const xN = result.bandSteps.length;
-    const xForI = i => padL + (i/(xN-1))*plotW;
-    const yForV = v => {
-      const lv = Math.log10(Math.max(v,1));
-      const t = (lv - logMin)/(logMax-logMin);
-      return padT + (1-t)*plotH;
-    };
-
-    // grid + y labels
-    ctx.strokeStyle = '#1B1F28';
-    ctx.fillStyle = '#7B8395';
-    ctx.font = '10.5px ui-monospace, monospace';
-    ctx.textAlign = 'right';
-    ctx.textBaseline = 'middle';
-    const gridLines = 5;
-    for(let g=0; g<=gridLines; g++){
-      const lv = logMin + (logMax-logMin)*(g/gridLines);
-      const val = Math.pow(10, lv);
-      const y = padT + plotH - (g/gridLines)*plotH;
-      ctx.beginPath();
-      ctx.moveTo(padL, y);
-      ctx.lineTo(padL+plotW, y);
-      ctx.stroke();
-      ctx.fillText(fmtMoney(val), padL-8, y);
-    }
-
-    // x labels
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-    const xTicks = 5;
-    for(let g=0; g<=xTicks; g++){
-      const idx = Math.round((xN-1)*(g/xTicks));
-      const x = xForI(idx);
-      ctx.fillText(result.bandSteps[idx], x, padT+plotH+8);
-    }
-
-    // sample paths (spaghetti)
-    ctx.strokeStyle = 'rgba(74,84,104,0.35)';
-    ctx.lineWidth = 1;
-    result.samplePaths.forEach(path=>{
-      ctx.beginPath();
-      for(let i=0;i<path.length;i++){
-        const x = padL + (i/(path.length-1))*plotW;
-        const y = yForV(path[i]);
-        if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-      }
-      ctx.stroke();
-    });
-
-    // bands: 5-95
-    function drawBand(lowArr, highArr, color){
-      ctx.beginPath();
-      for(let i=0;i<xN;i++){
-        const x = xForI(i), y = yForV(highArr[i]);
-        if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-      }
-      for(let i=xN-1;i>=0;i--){
-        const x = xForI(i), y = yForV(lowArr[i]);
-        ctx.lineTo(x,y);
-      }
-      ctx.closePath();
-      ctx.fillStyle = color;
-      ctx.fill();
-    }
-    drawBand(result.bands.p5, result.bands.p95, 'rgba(37,43,56,0.85)');
-    drawBand(result.bands.p25, result.bands.p75, 'rgba(58,65,82,0.85)');
-
-    // median line
-    ctx.strokeStyle = '#E3A63E';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    for(let i=0;i<xN;i++){
-      const x = xForI(i), y = yForV(result.bands.p50[i]);
-      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-    }
-    ctx.stroke();
-
-    // axis line
-    ctx.strokeStyle = '#1E222C';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(padL, padT);
-    ctx.lineTo(padL, padT+plotH);
-    ctx.lineTo(padL+plotW, padT+plotH);
-    ctx.stroke();
-  }
-
-  function drawHistogram(canvas, finalCapitals, capital0){
-    const dpr = window.devicePixelRatio || 1;
-    const cssW = canvas.parentElement.clientWidth - 44;
-    const cssH = 240;
-    canvas.width = cssW*dpr;
-    canvas.height = cssH*dpr;
-    canvas.style.width = cssW+'px';
-    canvas.style.height = cssH+'px';
-    const ctx = canvas.getContext('2d');
-    ctx.scale(dpr,dpr);
-    ctx.clearRect(0,0,cssW,cssH);
-
-    const padL = 50, padR = 14, padT = 10, padB = 26;
-    const plotW = cssW - padL - padR;
-    const plotH = cssH - padT - padB;
-
-    const vals = finalCapitals.filter(v=>v>0);
-    const logVals = vals.map(v=>Math.log10(v));
-    const lo = Math.min(...logVals), hi = Math.max(...logVals);
-    const numBins = 40;
-    const binW = (hi-lo)/numBins || 1;
-    const bins = new Array(numBins).fill(0);
-    logVals.forEach(v=>{
-      let b = Math.floor((v-lo)/binW);
-      if(b>=numBins) b = numBins-1;
-      if(b<0) b=0;
-      bins[b]++;
-    });
-    const maxCount = Math.max(...bins);
-
-    // gridlines
-    ctx.strokeStyle = '#1B1F28';
-    ctx.fillStyle = '#7B8395';
-    ctx.font = '10.5px ui-monospace, monospace';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-
-    const barW = plotW/numBins;
-    for(let i=0;i<numBins;i++){
-      const h = (bins[i]/maxCount)*plotH;
-      const x = padL + i*barW;
-      const y = padT + plotH - h;
-      const binCenterLog = lo + (i+0.5)*binW;
-      const binVal = Math.pow(10, binCenterLog);
-      ctx.fillStyle = binVal < capital0 ? 'rgba(226,102,90,0.55)' : 'rgba(76,195,138,0.55)';
-      ctx.fillRect(x+1, y, barW-2, h);
-    }
-
-    // x labels at a few points
-    ctx.fillStyle = '#7B8395';
-    const xTicks = 5;
-    for(let g=0; g<=xTicks; g++){
-      const lv = lo + (hi-lo)*(g/xTicks);
-      const val = Math.pow(10, lv);
-      const x = padL + (g/xTicks)*plotW;
-      ctx.fillText(fmtMoney(val), x, padT+plotH+8);
-    }
-
-    // marker for initial capital
-    if(capital0 >= Math.pow(10,lo) && capital0 <= Math.pow(10,hi)){
-      const lvC = Math.log10(capital0);
-      const xC = padL + ((lvC-lo)/(hi-lo))*plotW;
-      ctx.strokeStyle = '#E3A63E';
-      ctx.setLineDash([4,3]);
-      ctx.beginPath();
-      ctx.moveTo(xC, padT);
-      ctx.lineTo(xC, padT+plotH);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.fillStyle = '#E3A63E';
-      ctx.textAlign = 'left';
-      ctx.fillText('capitale iniziale', xC+4, padT+2);
-    }
-
-    ctx.strokeStyle = '#1E222C';
-    ctx.beginPath();
-    ctx.moveTo(padL, padT);
-    ctx.lineTo(padL, padT+plotH);
-    ctx.lineTo(padL+plotW, padT+plotH);
-    ctx.stroke();
-  }
-
-  function renderStatsTable(stats, numSims, capital0){
-    const body = document.getElementById('stats-body');
-    const rows = [
-      ['Capitale iniziale', fmtMoney(capital0), 'Capitale finale massimo', fmtMoney(stats.max)],
-      ['Mediana', fmtMoney(stats.median), 'Capitale finale minimo', fmtMoney(stats.min)],
-      ['Media', fmtMoney(stats.mean), '5° percentile', fmtMoney(stats.p5)],
-      ['95° percentile', fmtMoney(stats.p95), '25° percentile', fmtMoney(stats.p25)],
-      ['75° percentile', fmtMoney(stats.p75), 'P(finale &lt; iniziale)', fmtPct(stats.probLoss)],
-      ['P(finale &lt; 50% iniziale)', fmtPct(stats.probHalfLoss), 'P(finale &lt; 10% iniziale)', fmtPct(stats.probRuin90)],
-      ['Drawdown massimo — mediana', fmtPct(stats.ddMedian), 'Drawdown massimo — media', fmtPct(stats.ddMean)],
-      ['Drawdown massimo — 95° perc.', fmtPct(stats.ddP95), 'Drawdown massimo — peggiore', fmtPct(stats.ddWorst)],
-    ];
-    body.innerHTML = rows.map(r=>
-      `<tr><td class="label">${r[0]}</td><td>${r[1]}</td><td class="label">${r[2]}</td><td>${r[3]}</td></tr>`
-    ).join('');
-    document.getElementById('sum-n').textContent = numSims;
-  }
-
-  function renderInsight(stats, capital0, numTrades){
-    const el = document.getElementById('insight-note');
-    const multMedian = stats.median/capital0;
-    el.innerHTML = `<b>Nota di lettura.</b> Con il 100% del capitale impiegato su ogni trade, la crescita è puramente moltiplicativa: `+
-      `l'esito mediano dopo ${numTrades} trade è circa <b>${multMedian.toFixed(0)}×</b> il capitale iniziale, ma la dispersione tra il 5° e il 95° percentile copre diversi ordini di grandezza `+
-      `(da ${fmtMoney(stats.p5)} a ${fmtMoney(stats.p95)}). Il drawdown massimo mediano è del <b>${fmtPct(stats.ddMedian)}</b>, `+
-      `e nel caso peggiore osservato ha raggiunto <b>${fmtPct(stats.ddWorst)}</b>. Questo riflette il rischio strutturale del position sizing al 100%: `+
-      `anche con un edge positivo (win rate 80%), una singola sequenza sfortunata di perdite consecutive può erodere una quota enorme di capitale prima che l'edge si manifesti nel lungo periodo.`;
-  }
-
-  function renderHero(stats, capital0){
-    document.getElementById('hero-median').textContent = fmtMoney(stats.median);
-    document.getElementById('stat-mean').textContent = fmtMoney(stats.mean);
-    document.getElementById('stat-range').textContent = fmtMoney(stats.p5)+' – '+fmtMoney(stats.p95);
-    document.getElementById('stat-ploss').textContent = fmtPct(stats.probLoss);
-    document.getElementById('stat-dd').textContent = fmtPct(stats.ddMedian);
-  }
-
-  function run(){
-    runBtn.disabled = true;
-    runBtn.textContent = 'Calcolo in corso…';
-    setTimeout(()=>{
-      const params = {
-        capital0: parseFloat(inCapital.value) || 10000,
-        numTrades: parseInt(inTrades.value),
-        numSims: parseInt(inSims.value),
-        winRate: parseInt(inWinrate.value)/100,
-        winPct: parseFloat(inWin.value)/100,
-        lossPct: (parseFloat(inWin.value)/100) * parseFloat(inMult.value)
+      const bands={
+        p5:[],
+        p25:[],
+        p50:[],
+        p75:[],
+        p95:[]
       };
-      const result = runSimulation(params);
-      renderHero(result.stats, params.capital0);
-      drawEquityChart(document.getElementById('chart-equity'), result, params.capital0);
-      drawHistogram(document.getElementById('chart-hist'), result.finalCapitals, params.capital0);
-      renderStatsTable(result.stats, params.numSims, params.capital0);
-      renderInsight(result.stats, params.capital0, params.numTrades);
 
-      runBtn.disabled = false;
-      runBtn.textContent = 'Esegui simulazione';
-    }, 30);
-  }
 
-  runBtn.addEventListener('click', run);
-  window.addEventListener('resize', ()=>{
-    // re-run draw only if we have data — simplest: trigger a fresh run on resize end
-  });
+      for(
+              let i=0;
+              i<bandSteps.length;
+              i++
+      ){
 
-  // initial run
-  run();
+        const col=
+                Array.from(
+                        bandMatrix[i]
+                ).sort(
+                        (a,b)=>a-b
+                );
 
-})();
+
+        bands.p5.push(
+                quantile(col,0.05)
+        );
+
+        bands.p25.push(
+                quantile(col,0.25)
+        );
+
+        bands.p50.push(
+                quantile(col,0.50)
+        );
+
+        bands.p75.push(
+                quantile(col,0.75)
+        );
+
+        bands.p95.push(
+                quantile(col,0.95)
+        );
+      }
+
+
+      const sortedFinal=
+              Array.from(
+                      finalCapitals
+              ).sort(
+                      (a,b)=>a-b
+              );
+
+
+      const sortedDD=
+              Array.from(
+                      maxDrawdowns
+              ).sort(
+                      (a,b)=>a-b
+              );
+
+
+      let sum=0;
+
+      for(
+              let i=0;
+              i<sortedFinal.length;
+              i++
+      ){
+
+        sum+=sortedFinal[i];
+      }
+
+
+      const meanFinal=
+              sum/
+              sortedFinal.length;
+
+
+      let lossCount=0;
+      let halfLossCount=0;
+      let ruinCount=0;
+
+
+      for(
+              let i=0;
+              i<finalCapitals.length;
+              i++
+      ){
+
+        if(
+                finalCapitals[i]<
+                capital0
+        )
+          lossCount++;
+
+
+        if(
+                finalCapitals[i]<
+                capital0*0.5
+        )
+          halfLossCount++;
+
+
+        if(
+                finalCapitals[i]<
+                capital0*0.1
+        )
+          ruinCount++;
+      }
+
+
+      let ddSum=0;
+
+
+      for(
+              let i=0;
+              i<sortedDD.length;
+              i++
+      ){
+
+        ddSum+=sortedDD[i];
+      }
+
+
+      return {
+
+        bandSteps,
+        bands,
+        samplePaths,
+        sampleStepIdx,
+
+        finalCapitals:
+        sortedFinal,
+
+        maxDrawdowns:
+        sortedDD,
+
+        stats:{
+
+          median:
+                  quantile(
+                          sortedFinal,
+                          0.5
+                  ),
+
+          mean:
+          meanFinal,
+
+          p5:
+                  quantile(
+                          sortedFinal,
+                          0.05
+                  ),
+
+          p25:
+                  quantile(
+                          sortedFinal,
+                          0.25
+                  ),
+
+          p75:
+                  quantile(
+                          sortedFinal,
+                          0.75
+                  ),
+
+          p95:
+                  quantile(
+                          sortedFinal,
+                          0.95
+                  ),
+
+          min:
+                  sortedFinal[0],
+
+          max:
+                  sortedFinal[
+                  sortedFinal.length-1
+                          ],
+
+          probLoss:
+                  lossCount/numSims,
+
+          probHalfLoss:
+                  halfLossCount/numSims,
+
+          probRuin90:
+                  ruinCount/numSims,
+
+          ddMedian:
+                  quantile(
+                          sortedDD,
+                          0.5
+                  ),
+
+          ddMean:
+                  ddSum/
+                  sortedDD.length,
+
+          ddP95:
+                  quantile(
+                          sortedDD,
+                          0.95
+                  ),
+
+          ddWorst:
+                  sortedDD[
+                  sortedDD.length-1
+                          ]
+        }
+      };
+    }
+
+
+    // ============================================================
+    // EQUITY CHART
+    // ============================================================
+
+    function drawEquityChart(
+            canvas,
+            result,
+            capital0
+    ){
+
+      const dpr =
+              window.devicePixelRatio||1;
+
+
+      const cssW =
+              canvas.parentElement.clientWidth;
+
+
+      const isMobile =
+              window.innerWidth<=760;
+
+
+      const cssH =
+              isMobile
+                      ? 260
+                      : 340;
+
+
+      canvas.width=
+              cssW*dpr;
+
+      canvas.height=
+              cssH*dpr;
+
+
+      canvas.style.width=
+              cssW+'px';
+
+      canvas.style.height=
+              cssH+'px';
+
+
+      const ctx=
+              canvas.getContext('2d');
+
+
+      ctx.setTransform(
+              dpr,
+              0,
+              0,
+              dpr,
+              0,
+              0
+      );
+
+
+      ctx.clearRect(
+              0,
+              0,
+              cssW,
+              cssH
+      );
+
+
+      const padL =
+              isMobile ? 54 : 66;
+
+      const padR=10;
+
+      const padT=10;
+
+      const padB=26;
+
+
+      const plotW=
+              cssW-
+              padL-
+              padR;
+
+
+      const plotH=
+              cssH-
+              padT-
+              padB;
+
+
+      let yMin=Infinity;
+      let yMax=-Infinity;
+
+
+      result.bands.p5.forEach(v=>{
+
+        if(v>0)
+          yMin=Math.min(
+                  yMin,
+                  v
+          );
+      });
+
+
+      result.bands.p95.forEach(v=>{
+
+        yMax=Math.max(
+                yMax,
+                v
+        );
+      });
+
+
+      yMin=Math.min(
+              yMin,
+              capital0*0.05
+      );
+
+
+      yMin=Math.max(
+              yMin,
+              1
+      );
+
+
+      const logMin=
+              Math.log10(yMin);
+
+
+      const logMax=
+              Math.log10(
+                      yMax*1.05
+              );
+
+
+      const xN=
+              result.bandSteps.length;
+
+
+      const xForI=
+              i=>padL+
+                      (i/(xN-1))*plotW;
+
+
+      const yForV=
+              v=>{
+
+                const lv=
+                        Math.log10(
+                                Math.max(v,1)
+                        );
+
+
+                const t=
+                        (
+                                lv-logMin
+                        )/
+                        (
+                                logMax-logMin
+                        );
+
+
+                return padT+
+                        (1-t)*plotH;
+              };
+
+
+      // Grid
+
+      ctx.strokeStyle='#1B1F28';
+      ctx.fillStyle='#7B8395';
+
+      ctx.font=
+              isMobile
+                      ? '9px ui-monospace, monospace'
+                      : '10.5px ui-monospace, monospace';
+
+
+      ctx.textAlign='right';
+      ctx.textBaseline='middle';
+
+
+      const gridLines=
+              isMobile ? 4 : 5;
+
+
+      for(
+              let g=0;
+              g<=gridLines;
+              g++
+      ){
+
+        const lv=
+                logMin+
+                (logMax-logMin)*
+                (g/gridLines);
+
+
+        const val=
+                Math.pow(10,lv);
+
+
+        const y=
+                padT+
+                plotH-
+                (g/gridLines)*plotH;
+
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+                padL,
+                y
+        );
+
+        ctx.lineTo(
+                padL+plotW,
+                y
+        );
+
+        ctx.stroke();
+
+
+        ctx.fillText(
+                fmtMoney(val),
+                padL-7,
+                y
+        );
+      }
+
+
+      // X labels
+
+      ctx.textAlign='center';
+      ctx.textBaseline='top';
+
+
+      const xTicks=
+              isMobile ? 4 : 5;
+
+
+      for(
+              let g=0;
+              g<=xTicks;
+              g++
+      ){
+
+        const idx=
+                Math.round(
+                        (xN-1)*
+                        (g/xTicks)
+                );
+
+
+        ctx.fillText(
+                result.bandSteps[idx],
+                xForI(idx),
+                padT+plotH+7
+        );
+      }
+
+
+      // Sample paths
+
+      ctx.strokeStyle=
+              'rgba(74,84,104,0.35)';
+
+      ctx.lineWidth=1;
+
+
+      result.samplePaths.forEach(
+              path=>{
+
+                ctx.beginPath();
+
+                for(
+                        let i=0;
+                        i<path.length;
+                        i++
+                ){
+
+                  const x=
+                          padL+
+                          (i/(path.length-1))*
+                          plotW;
+
+
+                  const y=
+                          yForV(path[i]);
+
+
+                  if(i===0)
+                    ctx.moveTo(x,y);
+                  else
+                    ctx.lineTo(x,y);
+                }
+
+                ctx.stroke();
+              }
+      );
+
+
+      // Bands
+
+      function drawBand(
+              lowArr,
+              highArr,
+              color
+      ){
+
+        ctx.beginPath();
+
+
+        for(
+                let i=0;
+                i<xN;
+                i++
+        ){
+
+          const x=xForI(i);
+
+          const y=
+                  yForV(
+                          highArr[i]
+                  );
+
+
+          if(i===0)
+            ctx.moveTo(x,y);
+          else
+            ctx.lineTo(x,y);
+        }
+
+
+        for(
+                let i=xN-1;
+                i>=0;
+                i--
+        ){
+
+          ctx.lineTo(
+                  xForI(i),
+                  yForV(
+                          lowArr[i]
+                  )
+          );
+        }
+
+
+        ctx.closePath();
+
+        ctx.fillStyle=color;
+
+        ctx.fill();
+      }
+
+
+      drawBand(
+              result.bands.p5,
+              result.bands.p95,
+              'rgba(37,43,56,0.85)'
+      );
+
+
+      drawBand(
+              result.bands.p25,
+              result.bands.p75,
+              'rgba(58,65,82,0.85)'
+      );
+
+
+      // Median
+
+      ctx.strokeStyle='#E3A63E';
+      ctx.lineWidth=2;
+
+      ctx.beginPath();
+
+
+      for(
+              let i=0;
+              i<xN;
+              i++
+      ){
+
+        const x=xForI(i);
+
+        const y=
+                yForV(
+                        result.bands.p50[i]
+                );
+
+
+        if(i===0)
+          ctx.moveTo(x,y);
+        else
+          ctx.lineTo(x,y);
+      }
+
+
+      ctx.stroke();
+
+
+      // Axis
+
+      ctx.strokeStyle='#1E222C';
+
+      ctx.lineWidth=1;
+
+      ctx.beginPath();
+
+      ctx.moveTo(
+              padL,
+              padT
+      );
+
+      ctx.lineTo(
+              padL,
+              padT+plotH
+      );
+
+      ctx.lineTo(
+              padL+plotW,
+              padT+plotH
+      );
+
+      ctx.stroke();
+    }
+
+
+    // ============================================================
+    // HISTOGRAM
+    // ============================================================
+
+    function drawHistogram(
+            canvas,
+            finalCapitals,
+            capital0
+    ){
+
+      const dpr=
+              window.devicePixelRatio||1;
+
+
+      const cssW=
+              canvas.parentElement.clientWidth;
+
+
+      const isMobile=
+              window.innerWidth<=760;
+
+
+      const cssH=
+              isMobile ? 210 : 240;
+
+
+      canvas.width=
+              cssW*dpr;
+
+      canvas.height=
+              cssH*dpr;
+
+
+      canvas.style.width=
+              cssW+'px';
+
+      canvas.style.height=
+              cssH+'px';
+
+
+      const ctx=
+              canvas.getContext('2d');
+
+
+      ctx.setTransform(
+              dpr,
+              0,
+              0,
+              dpr,
+              0,
+              0
+      );
+
+
+      ctx.clearRect(
+              0,
+              0,
+              cssW,
+              cssH
+      );
+
+
+      const padL=
+              isMobile ? 44 : 50;
+
+      const padR=10;
+
+      const padT=10;
+
+      const padB=26;
+
+
+      const plotW=
+              cssW-
+              padL-
+              padR;
+
+
+      const plotH=
+              cssH-
+              padT-
+              padB;
+
+
+      const vals=
+              finalCapitals.filter(
+                      v=>v>0
+              );
+
+
+      const logVals=
+              vals.map(
+                      v=>Math.log10(v)
+              );
+
+
+      const lo=
+              Math.min(...logVals);
+
+      const hi=
+              Math.max(...logVals);
+
+
+      const numBins=
+              isMobile ? 32 : 40;
+
+
+      const binW=
+              (hi-lo)/numBins||1;
+
+
+      const bins=
+              new Array(numBins)
+                      .fill(0);
+
+
+      logVals.forEach(v=>{
+
+        let b=
+                Math.floor(
+                        (v-lo)/binW
+                );
+
+
+        if(b>=numBins)
+          b=numBins-1;
+
+
+        if(b<0)
+          b=0;
+
+
+        bins[b]++;
+      });
+
+
+      const maxCount=
+              Math.max(...bins);
+
+
+      const barW=
+              plotW/numBins;
+
+
+      for(
+              let i=0;
+              i<numBins;
+              i++
+      ){
+
+        const h=
+                (bins[i]/maxCount)*
+                plotH;
+
+
+        const x=
+                padL+
+                i*barW;
+
+
+        const y=
+                padT+
+                plotH-
+                h;
+
+
+        const binCenterLog=
+                lo+
+                (i+0.5)*binW;
+
+
+        const binVal=
+                Math.pow(
+                        10,
+                        binCenterLog
+                );
+
+
+        ctx.fillStyle=
+                binVal<capital0
+                        ? 'rgba(226,102,90,0.55)'
+                        : 'rgba(76,195,138,0.55)';
+
+
+        ctx.fillRect(
+                x+1,
+                y,
+                Math.max(
+                        barW-2,
+                        1
+                ),
+                h
+        );
+      }
+
+
+      ctx.fillStyle='#7B8395';
+
+      ctx.font=
+              isMobile
+                      ? '9px ui-monospace, monospace'
+                      : '10.5px ui-monospace, monospace';
+
+
+      ctx.textAlign='center';
+      ctx.textBaseline='top';
+
+
+      const xTicks=
+              isMobile ? 4 : 5;
+
+
+      for(
+              let g=0;
+              g<=xTicks;
+              g++
+      ){
+
+        const lv=
+                lo+
+                (hi-lo)*(g/xTicks);
+
+
+        const val=
+                Math.pow(10,lv);
+
+
+        const x=
+                padL+
+                (g/xTicks)*plotW;
+
+
+        ctx.fillText(
+                fmtMoney(val),
+                x,
+                padT+plotH+7
+        );
+      }
+
+
+      // Initial capital marker
+
+      if(
+              capital0>=Math.pow(10,lo) &&
+              capital0<=Math.pow(10,hi)
+      ){
+
+        const lvC=
+                Math.log10(
+                        capital0
+                );
+
+
+        const xC=
+                padL+
+                (
+                        (lvC-lo)/
+                        (hi-lo)
+                )*
+                plotW;
+
+
+        ctx.strokeStyle='#E3A63E';
+
+        ctx.setLineDash(
+                [4,3]
+        );
+
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+                xC,
+                padT
+        );
+
+        ctx.lineTo(
+                xC,
+                padT+plotH
+        );
+
+        ctx.stroke();
+
+
+        ctx.setLineDash([]);
+
+
+        ctx.fillStyle='#E3A63E';
+
+        ctx.textAlign='left';
+
+        ctx.fillText(
+                'iniziale',
+                xC+4,
+                padT+2
+        );
+      }
+
+
+      ctx.strokeStyle='#1E222C';
+
+      ctx.beginPath();
+
+      ctx.moveTo(
+              padL,
+              padT
+      );
+
+      ctx.lineTo(
+              padL,
+              padT+plotH
+      );
+
+      ctx.lineTo(
+              padL+plotW,
+              padT+plotH
+      );
+
+      ctx.stroke();
+    }
+
+
+    // ============================================================
+    // STATS TABLE
+    // ============================================================
+
+    function renderStatsTable(
+            stats,
+            numSims,
+            capital0
+    ){
+
+      const body=
+              document.getElementById(
+                      'stats-body'
+              );
+
+
+      const rows=[
+
+        [
+          'Capitale iniziale',
+          fmtMoney(capital0),
+          'Capitale finale massimo',
+          fmtMoney(stats.max)
+        ],
+
+        [
+          'Mediana',
+          fmtMoney(stats.median),
+          'Capitale finale minimo',
+          fmtMoney(stats.min)
+        ],
+
+        [
+          'Media',
+          fmtMoney(stats.mean),
+          '5° percentile',
+          fmtMoney(stats.p5)
+        ],
+
+        [
+          '95° percentile',
+          fmtMoney(stats.p95),
+          '25° percentile',
+          fmtMoney(stats.p25)
+        ],
+
+        [
+          '75° percentile',
+          fmtMoney(stats.p75),
+          'P(finale &lt; iniziale)',
+          fmtPct(stats.probLoss)
+        ],
+
+        [
+          'P(finale &lt; 50% iniziale)',
+          fmtPct(stats.probHalfLoss),
+          'P(finale &lt; 10% iniziale)',
+          fmtPct(stats.probRuin90)
+        ],
+
+        [
+          'Drawdown massimo — mediana',
+          fmtPct(stats.ddMedian),
+          'Drawdown massimo — media',
+          fmtPct(stats.ddMean)
+        ],
+
+        [
+          'Drawdown massimo — 95° perc.',
+          fmtPct(stats.ddP95),
+          'Drawdown massimo — peggiore',
+          fmtPct(stats.ddWorst)
+        ]
+
+      ];
+
+
+      body.innerHTML=
+              rows.map(
+                      r=>
+                              `<tr>
+            <td class="label">${r[0]}</td>
+            <td>${r[1]}</td>
+            <td class="label">${r[2]}</td>
+            <td>${r[3]}</td>
+          </tr>`
+              ).join('');
+
+
+      document.getElementById(
+              'sum-n'
+      ).textContent=numSims;
+    }
+
+
+    // ============================================================
+    // INSIGHT
+    // ============================================================
+
+    function renderInsight(
+            stats,
+            capital0,
+            numTrades,
+            mode
+    ){
+
+      const el=
+              document.getElementById(
+                      'insight-note'
+              );
+
+
+      const multMedian=
+              stats.median/
+              capital0;
+
+
+      const modelText=
+              mode==='bootstrap'
+
+                      ? 'I rendimenti dei singoli trade vengono campionati dai pool storici WIN/LOSS, quindi la variabilità overnight è incorporata nella simulazione.'
+
+                      : 'Gli esiti sono simulati con percentuali fisse, quindi la variabilità overnight non è incorporata.';
+
+
+      el.innerHTML=
+
+              `<b>Nota di lettura.</b> `+
+
+              `Con il 100% del capitale impiegato su ogni trade, `+
+
+              `la crescita è puramente moltiplicativa: `+
+
+              `l'esito mediano dopo ${numTrades} trade è circa `+
+
+              `<b>${multMedian.toFixed(0)}×</b> il capitale iniziale, `+
+
+              `ma la dispersione tra il 5° e il 95° percentile `+
+
+              `può coprire diversi ordini di grandezza. `+
+
+              `Il drawdown massimo mediano è del `+
+
+              `<b>${fmtPct(stats.ddMedian)}</b>, `+
+
+              `mentre nel caso peggiore osservato è stato del `+
+
+              `<b>${fmtPct(stats.ddWorst)}</b>. `+
+
+              `${modelText} `+
+
+              `Questo riflette il rischio strutturale del position sizing al 100%: `+
+
+              `anche con un edge positivo, una sequenza sfavorevole può `+
+
+              `erodere rapidamente il capitale.`;
+    }
+
+
+    // ============================================================
+    // HERO
+    // ============================================================
+
+    function renderHero(
+            stats,
+            capital0,
+            numSims
+    ){
+
+      document.getElementById(
+              'hero-median'
+      ).textContent=
+              fmtMoney(stats.median);
+
+
+      document.getElementById(
+              'hero-sims'
+      ).textContent=
+              numSims;
+
+
+      document.getElementById(
+              'stat-mean'
+      ).textContent=
+              fmtMoney(stats.mean);
+
+
+      document.getElementById(
+              'stat-range'
+      ).textContent=
+              fmtMoney(stats.p5)+
+              ' – '+
+              fmtMoney(stats.p95);
+
+
+      document.getElementById(
+              'stat-ploss'
+      ).textContent=
+              fmtPct(stats.probLoss);
+
+
+      document.getElementById(
+              'stat-dd'
+      ).textContent=
+              fmtPct(stats.ddMedian);
+    }
+
+
+    // ============================================================
+    // RUN
+    // ============================================================
+
+    function run(){
+
+      runBtn.disabled=true;
+
+      runBtn.textContent=
+              'Calcolo in corso…';
+
+
+      setTimeout(()=>{
+
+        const params={
+
+          capital0:
+                  parseFloat(
+                          inCapital.value
+                  )||10000,
+
+          numTrades:
+                  parseInt(
+                          inTrades.value
+                  ),
+
+          numSims:
+                  parseInt(
+                          inSims.value
+                  ),
+
+          winRate:
+                  parseInt(
+                          inWinrate.value
+                  )/100,
+
+          winPct:
+                  parseFloat(
+                          inWin.value
+                  )/100,
+
+          lossPct:
+                  (
+                          parseFloat(
+                                  inWin.value
+                          )/100
+                  )*
+                  parseFloat(
+                          inMult.value
+                  ),
+
+          mode:
+          inMode.value
+        };
+
+
+        const result=
+                runSimulation(params);
+
+
+        renderHero(
+                result.stats,
+                params.capital0,
+                params.numSims
+        );
+
+
+        drawEquityChart(
+                document.getElementById(
+                        'chart-equity'
+                ),
+                result,
+                params.capital0
+        );
+
+
+        drawHistogram(
+                document.getElementById(
+                        'chart-hist'
+                ),
+                result.finalCapitals,
+                params.capital0
+        );
+
+
+        renderStatsTable(
+                result.stats,
+                params.numSims,
+                params.capital0
+        );
+
+
+        renderInsight(
+                result.stats,
+                params.capital0,
+                params.numTrades,
+                params.mode
+        );
+
+
+        runBtn.disabled=false;
+
+        runBtn.textContent=
+                'Esegui simulazione';
+
+      },30);
+    }
+
+
+    runBtn.addEventListener(
+            'click',
+            run
+    );
+
+
+    // ============================================================
+    // RESIZE
+    // ============================================================
+
+    let resizeTimer;
+
+    window.addEventListener(
+            'resize',
+            ()=>{
+
+              clearTimeout(
+                      resizeTimer
+              );
+
+              resizeTimer=
+                      setTimeout(
+                              ()=>{
+
+                                if(
+                                        document.getElementById(
+                                                'hero-median'
+                                        ).textContent!=='—'
+                                ){
+
+                                  run();
+                                }
+
+                              },
+                              180
+                      );
+            }
+    );
+
+
+    // ============================================================
+    // INITIAL
+    // ============================================================
+
+    run();
+
+  })();
 </script>
 
 </body>
