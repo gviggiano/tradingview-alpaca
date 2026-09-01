@@ -27,7 +27,7 @@ def register_dashboard(app):
         return render_template("dashboard.html")
 
     @app.route("/montecarlo")
-    def dashboard_page():
+    def monte_carlo():
         return render_template("monte_carlo_simulation.html")
 
     # =========================
