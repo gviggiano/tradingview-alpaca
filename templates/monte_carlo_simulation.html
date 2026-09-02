@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0A0C10">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Monte Carlo — Fixed-Fractional Strategy</title>
 
   <style>
@@ -27,6 +30,11 @@
 
     *{
       box-sizing:border-box;
+    }
+
+    html{
+      -webkit-text-size-adjust:100%;
+      text-size-adjust:100%;
     }
 
     html,
@@ -249,6 +257,25 @@
     .run-btn:disabled{
       opacity:0.55;
       cursor:default;
+    }
+
+    .controls-fold{
+      display:flex;
+      flex-direction:column;
+      gap:18px;
+      flex:1;
+      min-height:0;
+    }
+
+    .controls-fold summary{
+      display:none;
+    }
+
+    .controls-fold-body{
+      display:flex;
+      flex-direction:column;
+      gap:18px;
+      min-width:0;
     }
 
 
@@ -540,41 +567,29 @@
       }
 
       .app{
-        display:flex;
         flex-direction:column;
-
         min-height:100vh;
       }
 
-
-      /* -------------------------
-         Controls
-         ------------------------- */
-
       aside.controls{
         position:relative;
-
         width:100%;
         flex:none;
-
         height:auto;
         max-height:none;
-
         overflow:visible;
-
         border-right:none;
         border-bottom:1px solid var(--border);
-
         padding:
-                max(18px, env(safe-area-inset-top))
-                16px
-                18px;
-
-        gap:15px;
+          max(16px, env(safe-area-inset-top))
+          max(16px, env(safe-area-inset-right))
+          12px
+          max(16px, env(safe-area-inset-left));
+        gap:12px;
       }
 
       .brand{
-        margin-bottom:3px;
+        margin-bottom:0;
       }
 
       .brand .mark{
@@ -585,73 +600,136 @@
         font-size:15px;
       }
 
-
-      /* Two-column controls on phones */
-
-      aside.controls > .field:nth-of-type(1),
-      aside.controls > .field:nth-of-type(2),
-      aside.controls > .field:nth-of-type(3),
-      aside.controls > .field:nth-of-type(4),
-      aside.controls > .field:nth-of-type(5){
-        width:100%;
+      .controls-fold{
+        flex:none;
+        gap:0;
+        border:1px solid var(--border);
+        border-radius:8px;
+        background:var(--panel-2);
       }
 
-      .field label{
+      .controls-fold summary{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        padding:12px 14px;
+        font-size:13px;
+        font-weight:600;
+        color:var(--text);
+        cursor:pointer;
+        list-style:none;
+        -webkit-tap-highlight-color:transparent;
+      }
+
+      .controls-fold summary::-webkit-details-marker{
+        display:none;
+      }
+
+      .controls-fold summary::after{
+        content:'▾';
+        color:var(--accent);
         font-size:12px;
       }
 
+      .controls-fold:not([open]) summary::after{
+        content:'▸';
+      }
+
+      .controls-fold[open] summary{
+        border-bottom:1px solid var(--border);
+      }
+
+      .controls-fold-body{
+        display:grid;
+        grid-template-columns:1fr 1fr;
+        gap:14px 10px;
+        padding:14px;
+      }
+
+      .controls-fold-body > .field:has(select),
+      .controls-fold-body > .field:has(#in-capital),
+      .controls-fold-body > .field:has(#in-winrate),
+      .controls-fold-body > .field:has(#in-frac),
+      .controls-fold-body > .divider,
+      .controls-fold-body > .derived,
+      .controls-fold-body > #fixed-params{
+        grid-column:1 / -1;
+      }
+
+      #fixed-params{
+        display:grid;
+        grid-template-columns:1fr 1fr;
+        gap:14px 10px;
+      }
+
+      .field label{
+        font-size:11px;
+      }
 
       .field input[type=number],
       .field select{
-        min-height:38px;
+        min-height:44px;
+        font-size:16px;
+        padding:10px 10px;
       }
 
+      .field input[type=range]{
+        height:22px;
+        background:transparent;
+      }
+
+      .field input[type=range]::-webkit-slider-runnable-track{
+        height:3px;
+        background:var(--border);
+        border-radius:2px;
+      }
+
+      .field input[type=range]::-webkit-slider-thumb{
+        width:22px;
+        height:22px;
+        margin-top:-9.5px;
+      }
+
+      .field input[type=range]::-moz-range-thumb{
+        width:22px;
+        height:22px;
+      }
 
       .derived{
         font-size:11.5px;
-        padding:9px 10px;
+        padding:10px;
+        overflow-wrap:anywhere;
       }
-
 
       .run-btn{
-        margin-top:3px;
-
-        width:100%;
-
-        min-height:46px;
-
-        font-size:14px;
+        position:fixed;
+        left:max(16px, env(safe-area-inset-left));
+        right:max(16px, env(safe-area-inset-right));
+        bottom:max(12px, env(safe-area-inset-bottom));
+        width:auto;
+        margin:0;
+        min-height:48px;
+        font-size:15px;
+        z-index:30;
+        box-shadow:0 10px 28px rgba(0,0,0,.45);
       }
-
-
-      /* -------------------------
-         Main
-         ------------------------- */
 
       main.dashboard{
         width:100%;
         max-width:none;
-
         padding:
-                20px
-                16px
-                max(40px, env(safe-area-inset-bottom));
+          18px
+          max(16px, env(safe-area-inset-right))
+          calc(84px + env(safe-area-inset-bottom))
+          max(16px, env(safe-area-inset-left));
       }
 
-
-      /* -------------------------
-         Readout
-         ------------------------- */
-
       .readout{
-        display:flex;
         flex-direction:column;
         align-items:stretch;
-
-        gap:20px;
-
-        padding-bottom:20px;
-        margin-bottom:18px;
+        gap:16px;
+        padding-bottom:16px;
+        margin-bottom:16px;
       }
 
       .readout .primary .label{
@@ -659,16 +737,15 @@
       }
 
       .readout .primary .value{
-        font-size:34px;
+        font-size:clamp(24px, 8vw, 34px);
+        white-space:normal;
+        overflow-wrap:anywhere;
       }
 
       .readout .secondary{
         display:grid;
-
-        grid-template-columns:
-          repeat(2, minmax(0,1fr));
-
-        gap:18px 14px;
+        grid-template-columns:repeat(2, minmax(0,1fr));
+        gap:14px 12px;
       }
 
       .readout .secondary .item{
@@ -677,137 +754,85 @@
 
       .readout .secondary .item .label{
         font-size:10.5px;
-
         line-height:1.35;
-
-        min-height:28px;
-
-        display:flex;
-        align-items:flex-start;
+        min-height:0;
+        margin-bottom:6px;
       }
 
       .readout .secondary .item .value{
-        font-size:16px;
-
-        overflow:hidden;
-        text-overflow:ellipsis;
+        font-size:15px;
+        white-space:normal;
+        overflow-wrap:anywhere;
       }
 
-
-      /* -------------------------
-         Panels
-         ------------------------- */
-
       section.panel{
-        padding:15px 12px 13px;
-
-        margin-bottom:16px;
-
+        padding:14px 12px 12px;
+        margin-bottom:14px;
         border-radius:7px;
       }
 
       section.panel h2{
         font-size:13px;
-
         margin-bottom:3px;
       }
 
       section.panel p.sub{
         font-size:11px;
-
-        line-height:1.5;
-
+        line-height:1.45;
         margin-bottom:10px;
       }
 
-
-      /* -------------------------
-         Charts
-         ------------------------- */
-
-      #chart-equity{
-        width:100%;
-      }
-
+      #chart-equity,
       #chart-hist{
         width:100%;
+        max-width:100%;
       }
 
       .legend{
-        gap:9px 14px;
-
+        gap:8px 12px;
         font-size:10.5px;
       }
 
-      .legend .dot{
-        width:8px;
-        height:8px;
-
-        margin-right:4px;
-      }
-
-
-      /* -------------------------
-         Stats table
-         ------------------------- */
-
-      .table-wrapper{
-        margin-right:-2px;
-      }
-
       table.stats{
-        min-width:590px;
-
-        font-size:11.5px;
+        min-width:0;
+        font-size:12px;
       }
 
-      table.stats th{
-        font-size:10px;
+      table.stats thead{
+        display:none;
+      }
 
-        padding-bottom:7px;
+      table.stats tr{
+        display:grid;
+        grid-template-columns:minmax(0,1fr) auto;
+        gap:4px 12px;
+        padding:10px 0;
+        border-bottom:1px solid var(--grid);
       }
 
       table.stats td{
-        padding:8px 10px 8px 0;
+        padding:0;
+        border:none;
+        white-space:normal;
+        overflow-wrap:anywhere;
       }
 
-
-      /* -------------------------
-         Note
-         ------------------------- */
+      table.stats tr:last-child{
+        border-bottom:none;
+      }
 
       .note{
-        font-size:11.5px;
-
-        line-height:1.6;
-
-        padding:11px 12px;
+        font-size:12px;
+        line-height:1.55;
+        padding:12px;
       }
     }
 
 
-    /* ============================================================
-       SMALL PHONES
-       ============================================================ */
-
     @media (max-width: 400px){
 
-      main.dashboard{
-        padding-left:12px;
-        padding-right:12px;
-      }
-
-      aside.controls{
-        padding-left:12px;
-        padding-right:12px;
-      }
-
-      .readout .primary .value{
-        font-size:31px;
-      }
-
       .readout .secondary{
-        gap:16px 10px;
+        gap:12px 8px;
       }
 
       .readout .secondary .item .value{
@@ -815,49 +840,8 @@
       }
 
       section.panel{
-        padding-left:9px;
-        padding-right:9px;
-      }
-
-      .legend{
-        font-size:10px;
-      }
-    }
-
-
-    /* ============================================================
-       VERY SMALL HEIGHT / LANDSCAPE PHONES
-       ============================================================ */
-
-    @media (max-width: 760px) and (orientation: landscape){
-
-      aside.controls{
-        display:grid;
-
-        grid-template-columns:
-          repeat(2,minmax(0,1fr));
-
-        align-items:start;
-      }
-
-      .brand{
-        grid-column:1 / -1;
-      }
-
-      .divider{
-        grid-column:1 / -1;
-      }
-
-      .derived{
-        grid-column:1 / -1;
-      }
-
-      .run-btn{
-        grid-column:1 / -1;
-      }
-
-      #fixed-params{
-        grid-column:1 / -1;
+        padding-left:10px;
+        padding-right:10px;
       }
     }
   </style>
@@ -874,6 +858,11 @@
       <span class="name">Simulatore Monte Carlo</span>
     </div>
 
+    <details class="controls-fold" open>
+
+    <summary>Parametri</summary>
+
+    <div class="controls-fold-body">
 
     <div class="field">
       <label>
@@ -956,7 +945,7 @@
                 value="bootstrap"
                 selected
         >
-          Bootstrap da trade storici (31)
+          Bootstrap da trade storici
         </option>
 
         <option value="fixed">
@@ -964,6 +953,39 @@
         </option>
 
       </select>
+    </div>
+
+
+    <div class="field">
+      <label>
+        Position sizing
+      </label>
+
+      <select id="in-sizing">
+        <option value="fixed" selected>
+          Nominale fisso (size del capitale iniziale)
+        </option>
+        <option value="fractional">
+          Frazione dell'equity (compound, come TV)
+        </option>
+      </select>
+    </div>
+
+
+    <div class="field">
+      <label>
+        Capitale impiegato per trade
+        <span class="val" id="v-frac">100%</span>
+      </label>
+
+      <input
+              type="range"
+              id="in-frac"
+              min="5"
+              max="100"
+              step="5"
+              value="100"
+      >
     </div>
 
 
@@ -1035,11 +1057,11 @@
       <b id="d-loss">7.684%</b>
       <br>
 
-      Capitale impiegato per trade:
-      <b>100%</b>
+      Sizing:
+      <b id="d-sizing">nominale fisso</b>
       <br>
 
-      Aspettativa per trade (log):
+      Aspettativa per trade:
       <b id="d-exp">—</b>
 
     </div>
@@ -1050,23 +1072,30 @@
             id="bootstrap-box"
     >
 
+      Pool:
+      <b id="bp-total">—</b>
+      <br>
+
       Pool win:
-      <b id="bp-wincount">24 trade</b>,
+      <b id="bp-wincount">—</b>,
       media
-      <b id="bp-winmean">6.12%</b>
-      (<span id="bp-winrange">2.91% – 17.89%</span>)
+      <b id="bp-winmean">—</b>
+      (<span id="bp-winrange">—</span>)
       <br>
 
       Pool loss:
-      <b id="bp-losscount">7 trade</b>,
+      <b id="bp-losscount">—</b>,
       media
-      <b id="bp-lossmean">-7.95%</b>
-      (<span id="bp-lossrange">-7.70% – -8.67%</span>)
+      <b id="bp-lossmean">—</b>
+      (<span id="bp-lossrange">—</span>)
       <br>
 
-      Ogni trade estrae un valore reale dal pool corrispondente
+      Ogni trade è un estrazione con reinserimento dai rendimenti storici reali
 
     </div>
+
+    </div>
+    </details>
 
 
     <button
@@ -1341,6 +1370,18 @@
     const inMode =
             document.getElementById('in-mode');
 
+    const inSizing =
+            document.getElementById('in-sizing');
+
+    const inFrac =
+            document.getElementById('in-frac');
+
+    const vFrac =
+            document.getElementById('v-frac');
+
+    const dSizing =
+            document.getElementById('d-sizing');
+
 
     const vCapital =
             document.getElementById('v-capital');
@@ -1381,46 +1422,14 @@
     // HISTORICAL RETURNS
     // ============================================================
 
-    const WIN_RETURNS = [
+    let HIST_RETURNS = [];
+    let WIN_RETURNS = [];
+    let LOSS_RETURNS = [];
 
-      0.0291,
-      0.0340,
-      0.0380,
-      0.0410,
-      0.0450,
-      0.0490,
-      0.0530,
-      0.0570,
-      0.0610,
-      0.0650,
-      0.0680,
-      0.0710,
-      0.0740,
-      0.0780,
-      0.0810,
-      0.0850,
-      0.0890,
-      0.0930,
-      0.0970,
-      0.1000,
-      0.1080,
-      0.1200,
-      0.1450,
-      0.1789
-
-    ];
-
-
-    const LOSS_RETURNS = [
-
-      -0.0770,
-      -0.0770,
-      -0.0780,
-      -0.0790,
-      -0.0800,
-      -0.0830,
-      -0.0867
-
+    const FALLBACK_RETURNS = [
+      0.0341, 0.0341, 0.0341, 0.0341, 0.0341,
+      0.0341, 0.0341, 0.0341, 0.0400, 0.0445,
+      -0.0769, -0.0769, -0.0768
     ];
 
 
@@ -1434,6 +1443,9 @@
               x < 0 ? '-' : '';
 
       x=Math.abs(x);
+
+      if(x>=1e15)
+        return sign+'$'+x.toExponential(2);
 
       if(x>=1e12)
         return sign+'$'+(x/1e12).toFixed(2)+'T';
@@ -1528,7 +1540,17 @@
     // BOOTSTRAP INFO
     // ============================================================
 
+    function setReturnPools(returns){
+      HIST_RETURNS = returns.filter(r => Number.isFinite(r));
+      WIN_RETURNS = HIST_RETURNS.filter(r => r > 0);
+      LOSS_RETURNS = HIST_RETURNS.filter(r => r <= 0);
+    }
+
     function updateBootstrapStats(){
+
+      if(!HIST_RETURNS.length){
+        setReturnPools(FALLBACK_RETURNS);
+      }
 
       const winMean =
               mean(WIN_RETURNS);
@@ -1587,6 +1609,12 @@
               fmtPct(min(LOSS_RETURNS),2)+
               ' – '+
               fmtPct(max(LOSS_RETURNS),2);
+
+      document.getElementById(
+              'bp-total'
+      ).textContent =
+              HIST_RETURNS.length+
+              ' trade storici';
     }
 
 
@@ -1628,6 +1656,24 @@
               ).toFixed(2)+'×';
 
 
+      const frac =
+              (parseFloat(inFrac.value)||100)/100;
+
+
+      vFrac.textContent =
+              Math.round(frac*100)+'%';
+
+
+      const sizing =
+              inSizing.value;
+
+
+      dSizing.textContent =
+              sizing==='fixed'
+                      ? 'nominale fisso'
+                      : 'frazione equity';
+
+
       const winPct =
               parseFloat(
                       inWin.value
@@ -1651,49 +1697,55 @@
               )/100;
 
 
-      let expLog;
+      let exp;
 
 
       if(inMode.value==='bootstrap'){
 
-        const winLog =
-                mean(
-                        WIN_RETURNS.map(
-                                r=>Math.log(1+r)
-                        )
+        if(sizing==='fixed'){
+
+          exp = frac * mean(HIST_RETURNS);
+
+        }else{
+
+          exp = mean(
+                  HIST_RETURNS.map(
+                          r=>Math.log(1+frac*r)
+                  )
+          );
+
+        }
+
+      }else if(sizing==='fixed'){
+
+        exp =
+                frac*(
+                        wr*winPct-
+                        (1-wr)*lossPct
                 );
-
-
-        const lossLog =
-                mean(
-                        LOSS_RETURNS.map(
-                                r=>Math.log(1+r)
-                        )
-                );
-
-
-        expLog =
-                wr*winLog+
-                (1-wr)*lossLog;
 
       }else{
 
-        expLog =
+        exp =
                 wr*
-                Math.log(1+winPct)+
+                Math.log(1+frac*winPct)+
                 (1-wr)*
-                Math.log(1-lossPct);
+                Math.log(1-frac*lossPct);
       }
 
 
       dExp.textContent =
-              (expLog>=0?'+':'')+
-              (expLog*100).toFixed(3)+
-              '% / trade';
+              (exp>=0?'+':'')+
+              (exp*100).toFixed(3)+
+              (
+                      sizing==='fixed'
+                              ? '% nominale / trade'
+                              : '% log / trade'
+              );
 
 
       dExp.style.color =
-              expLog>=0
+              exp>=0
                       ? 'var(--win)'
                       : 'var(--loss)';
     }
@@ -1721,6 +1773,12 @@
                       : 'none';
 
 
+      inWinrate.closest('.field').style.opacity =
+              bootstrap ? '0.45' : '1';
+
+      inWinrate.disabled = bootstrap;
+
+
       syncLabels();
     }
 
@@ -1731,7 +1789,9 @@
       inSims,
       inWinrate,
       inWin,
-      inMult
+      inMult,
+      inFrac,
+      inSizing
     ].forEach(el=>{
 
       el.addEventListener(
@@ -1748,6 +1808,7 @@
     );
 
 
+    setReturnPools(FALLBACK_RETURNS);
     updateBootstrapStats();
     syncLabels();
     syncMode();
@@ -1766,7 +1827,9 @@
         winRate,
         winPct,
         lossPct,
-        mode
+        mode,
+        sizing,
+        frac
       } = params;
 
 
@@ -1901,42 +1964,34 @@
 
           if(mode==='bootstrap'){
 
-            if(
-                    Math.random()<
-                    winRate
-            ){
-
-              ret=
-                      randomFrom(
-                              WIN_RETURNS
-                      );
-
-            }else{
-
-              ret=
-                      randomFrom(
-                              LOSS_RETURNS
-                      );
-            }
+            ret =
+                    HIST_RETURNS.length
+                            ? randomFrom(HIST_RETURNS)
+                            : 0;
 
           }else{
 
-            if(
-                    Math.random()<
-                    winRate
-            ){
-
-              ret=winPct;
-
-            }else{
-
-              ret=-lossPct;
-            }
+            ret =
+                    Math.random()<winRate
+                            ? winPct
+                            : -lossPct;
           }
 
 
-          capital*=
-                  1+ret;
+          if(sizing==='fixed'){
+
+            capital +=
+                    (capital0*frac)*ret;
+
+          }else{
+
+            capital *=
+                    1+frac*ret;
+          }
+
+
+          if(capital<0)
+            capital=0;
 
 
           if(capital>peak)
@@ -2229,7 +2284,7 @@
 
       const cssH =
               isMobile
-                      ? 260
+                      ? 280
                       : 340;
 
 
@@ -2270,7 +2325,7 @@
 
 
       const padL =
-              isMobile ? 54 : 66;
+              isMobile ? 62 : 66;
 
       const padR=10;
 
@@ -2654,7 +2709,7 @@
 
 
       const cssH=
-              isMobile ? 210 : 240;
+              isMobile ? 220 : 240;
 
 
       canvas.width=
@@ -2694,7 +2749,7 @@
 
 
       const padL=
-              isMobile ? 44 : 50;
+              isMobile ? 56 : 50;
 
       const padR=10;
 
@@ -3082,13 +3137,11 @@
 
               `<b>Nota di lettura.</b> `+
 
-              `Con il 100% del capitale impiegato su ogni trade, `+
-
-              `la crescita è puramente moltiplicativa: `+
+              `Con il sizing selezionato, `+
 
               `l'esito mediano dopo ${numTrades} trade è circa `+
 
-              `<b>${multMedian.toFixed(0)}×</b> il capitale iniziale, `+
+              `<b>${multMedian.toFixed(2)}×</b> il capitale iniziale, `+
 
               `ma la dispersione tra il 5° e il 95° percentile `+
 
@@ -3165,7 +3218,7 @@
     // RUN
     // ============================================================
 
-    function run(){
+    function run(fromUser){
 
       runBtn.disabled=true;
 
@@ -3213,7 +3266,15 @@
                   ),
 
           mode:
-          inMode.value
+          inMode.value,
+
+          sizing:
+          inSizing.value,
+
+          frac:
+                  (parseFloat(
+                          inFrac.value
+                  )||100)/100
         };
 
 
@@ -3261,6 +3322,21 @@
         );
 
 
+        if(
+                fromUser &&
+                window.innerWidth<=760
+        ){
+
+          const fold=
+                  document.querySelector(
+                          '.controls-fold'
+                  );
+
+          if(fold)
+            fold.open=false;
+        }
+
+
         runBtn.disabled=false;
 
         runBtn.textContent=
@@ -3272,7 +3348,7 @@
 
     runBtn.addEventListener(
             'click',
-            run
+            ()=>run(true)
     );
 
 
@@ -3314,7 +3390,43 @@
     // INITIAL
     // ============================================================
 
-    run();
+    async function loadHistoricalReturns(){
+
+      try{
+
+        const response =
+                await fetch(
+                        '/montecarlo/returns',
+                        { cache:'no-store' }
+                );
+
+        if(!response.ok)
+          throw new Error('HTTP '+response.status);
+
+        const data = await response.json();
+
+        if(data.returns && data.returns.length){
+
+          setReturnPools(data.returns);
+
+          if(data.winRate){
+            inWinrate.value = String(
+                    Math.round(data.winRate*100)
+            );
+          }
+        }
+
+      }catch(_error){
+        setReturnPools(FALLBACK_RETURNS);
+      }
+
+      updateBootstrapStats();
+      syncLabels();
+      syncMode();
+      run();
+    }
+
+    loadHistoricalReturns();
 
   })();
 </script>

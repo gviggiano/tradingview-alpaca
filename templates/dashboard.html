@@ -6,24 +6,21 @@
     <meta charset="UTF-8">
     <meta
             name="viewport"
-            content="width=device-width, initial-scale=1.0"
+            content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     >
+    <meta name="theme-color" content="#0B0E11">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
     <title>Ledger — Trading Dashboard</title>
 
-    <link
-            rel="preconnect"
-            href="https://fonts.googleapis.com"
-    >
-
+    <link rel="preconnect" href="https://fonts.googleapis.com">
     <link
             href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap"
             rel="stylesheet"
     >
 
-    <script
-            src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js">
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 
     <style>
 
@@ -35,13 +32,21 @@
             --text:#E6E8EB;
             --muted:#7C8790;
             --accent:#D6A94A;
+            --live:#5B8DEF;
             --profit:#4FB286;
             --loss:#C9564D;
             --radius:3px;
+            --pad-x:max(20px, env(safe-area-inset-left));
+            --pad-r:max(20px, env(safe-area-inset-right));
         }
 
         *{
             box-sizing:border-box;
+        }
+
+        html{
+            -webkit-text-size-adjust:100%;
+            text-size-adjust:100%;
         }
 
         body{
@@ -50,6 +55,8 @@
             color:var(--text);
             font-family:'Inter',sans-serif;
             -webkit-font-smoothing:antialiased;
+            overflow-x:hidden;
+            padding-bottom:env(safe-area-inset-bottom);
         }
 
         .mono{
@@ -57,20 +64,19 @@
             font-variant-numeric:tabular-nums;
         }
 
-        /* =========================
-           HEADER
-        ========================= */
-
         header{
-            padding:22px 28px 18px;
+            padding:22px var(--pad-r) 18px var(--pad-x);
+            padding-top:max(22px, env(safe-area-inset-top));
             border-bottom:1px solid var(--line);
-
             display:flex;
-            align-items:center;
+            align-items:flex-end;
             justify-content:space-between;
-
             flex-wrap:wrap;
-            gap:15px;
+            gap:16px;
+            background:var(--bg);
+            position:sticky;
+            top:0;
+            z-index:20;
         }
 
         header h1{
@@ -88,9 +94,52 @@
             font-family:'IBM Plex Mono',monospace;
         }
 
-        /* =========================
-           PERIOD SELECTOR
-        ========================= */
+        .toolbar{
+            display:flex;
+            align-items:center;
+            flex-wrap:wrap;
+            gap:12px;
+        }
+
+        .seg{
+            display:flex;
+            background:var(--panel);
+            border:1px solid var(--line);
+            border-radius:var(--radius);
+            overflow:hidden;
+        }
+
+        .seg button{
+            appearance:none;
+            border:0;
+            background:transparent;
+            color:var(--muted);
+            font-family:'IBM Plex Mono',monospace;
+            font-size:11px;
+            letter-spacing:.06em;
+            text-transform:uppercase;
+            padding:10px 14px;
+            min-height:40px;
+            cursor:pointer;
+            -webkit-tap-highlight-color:transparent;
+        }
+
+        .seg button + button{
+            border-left:1px solid var(--line);
+        }
+
+        .seg button.active{
+            background:var(--panel-2);
+            color:var(--text);
+        }
+
+        .seg button[data-source="sim"].active{
+            color:var(--accent);
+        }
+
+        .seg button[data-source="live"].active{
+            color:var(--live);
+        }
 
         .period-control{
             display:flex;
@@ -108,37 +157,38 @@
         .period-control select{
             background:var(--panel);
             color:var(--text);
-
             border:1px solid var(--line);
-
-            padding:8px 10px;
-
+            padding:10px 12px;
+            min-height:40px;
             font-family:'IBM Plex Mono',monospace;
             font-size:11px;
-
             border-radius:var(--radius);
-
             cursor:pointer;
         }
 
-        .period-control select:focus{
+        .period-control select:focus,
+        #recapYear:focus{
             outline:none;
             border-color:var(--accent);
         }
 
-        /* =========================
-           STATUS
-        ========================= */
+        #recapYear{
+            background:var(--panel-2);
+            color:var(--text);
+            border:1px solid var(--line);
+            padding:10px 12px;
+            min-height:40px;
+            font-family:'IBM Plex Mono',monospace;
+            font-size:11px;
+            border-radius:var(--radius);
+            cursor:pointer;
+        }
 
         #status{
-            padding:10px 28px;
-
+            padding:10px var(--pad-r) 10px var(--pad-x);
             font-size:12px;
-
             color:var(--muted);
-
             font-family:'IBM Plex Mono',monospace;
-
             min-height:16px;
         }
 
@@ -146,150 +196,183 @@
             color:var(--loss);
         }
 
-        /* =========================
-           MAIN
-        ========================= */
-
         main{
-            padding:22px 28px 60px;
+            padding:22px var(--pad-r) 60px var(--pad-x);
         }
-
-        /* =========================
-           STATISTICS
-        ========================= */
 
         .stat-row{
             display:grid;
-
-            grid-template-columns:
-                repeat(6,1fr);
-
+            grid-template-columns:repeat(6,1fr);
             gap:1px;
-
             background:var(--line);
-
             border:1px solid var(--line);
-
             margin-bottom:22px;
         }
 
         .stat{
             background:var(--panel);
             padding:16px 18px;
+            min-width:0;
         }
 
         .stat .label{
             font-size:10px;
-
             text-transform:uppercase;
-
             letter-spacing:.08em;
-
             color:var(--muted);
-
             margin-bottom:8px;
         }
 
         .stat .value{
             font-size:22px;
-
             font-weight:600;
-
             font-family:'IBM Plex Mono',monospace;
+            overflow-wrap:anywhere;
         }
 
-        .up{
-            color:var(--profit);
-        }
-
-        .down{
-            color:var(--loss);
-        }
-
-        /* =========================
-           PANELS
-        ========================= */
+        .up{ color:var(--profit); }
+        .down{ color:var(--loss); }
 
         .panel{
             background:var(--panel);
-
             border:1px solid var(--line);
-
             margin-bottom:22px;
         }
 
         .panel h2{
             font-size:11px;
-
             text-transform:uppercase;
-
             letter-spacing:.1em;
-
             color:var(--muted);
-
             margin:0;
-
             padding:14px 18px;
-
             border-bottom:1px solid var(--line);
+        }
+
+        .panel .hint{
+            padding:0 18px 12px;
+            font-size:11px;
+            color:var(--muted);
+            font-family:'IBM Plex Mono',monospace;
         }
 
         .panel .body{
             padding:18px;
         }
 
+        .chart-box{
+            position:relative;
+            width:100%;
+            height:260px;
+        }
+
+        .chart-box canvas{
+            display:block;
+            max-width:100%;
+        }
+
         .grid-2{
             display:grid;
-
-            grid-template-columns:
-                1.4fr 1fr;
-
+            grid-template-columns:1.4fr 1fr;
             gap:22px;
         }
 
-        /* =========================
-           TABLE
-        ========================= */
+        .panel-head{
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:12px;
+            flex-wrap:wrap;
+            padding:10px 18px;
+            border-bottom:1px solid var(--line);
+        }
+
+        .panel-head h2{
+            border-bottom:none;
+            padding:4px 0;
+        }
+
+        .recap-controls{
+            display:flex;
+            align-items:center;
+            flex-wrap:wrap;
+            gap:8px;
+        }
+
+        .recap-stats{
+            display:flex;
+            flex-direction:column;
+        }
+
+        .recap-row{
+            display:grid;
+            grid-template-columns:72px minmax(88px,1fr) 72px 80px minmax(120px,1fr);
+            gap:10px 16px;
+            align-items:baseline;
+            padding:12px 18px;
+            border-bottom:1px solid var(--line);
+        }
+
+        .recap-row .src{
+            font-size:10px;
+            letter-spacing:.1em;
+            text-transform:uppercase;
+            font-weight:600;
+        }
+
+        .recap-row.sim .src{ color:var(--accent); }
+        .recap-row.live .src{ color:var(--live); }
+
+        .recap-row .big{
+            font-family:'IBM Plex Mono',monospace;
+            font-size:18px;
+            font-weight:600;
+        }
+
+        .recap-row .cell{
+            min-width:0;
+        }
+
+        .recap-row .k{
+            font-size:10px;
+            text-transform:uppercase;
+            letter-spacing:.06em;
+            color:var(--muted);
+            margin-bottom:3px;
+        }
+
+        .recap-row .v{
+            font-family:'IBM Plex Mono',monospace;
+            font-size:12px;
+        }
 
         .table-wrapper{
             overflow-x:auto;
+            -webkit-overflow-scrolling:touch;
         }
 
         table{
             width:100%;
-
             border-collapse:collapse;
-
             font-size:12.5px;
         }
 
         th{
             text-align:left;
-
             font-size:10px;
-
             text-transform:uppercase;
-
             letter-spacing:.06em;
-
             color:var(--muted);
-
             font-weight:500;
-
             padding:8px 10px;
-
             border-bottom:1px solid var(--line);
-
             white-space:nowrap;
         }
 
         td{
             padding:8px 10px;
-
             border-bottom:1px solid var(--line);
-
             font-family:'IBM Plex Mono',monospace;
-
             white-space:nowrap;
         }
 
@@ -297,115 +380,203 @@
             border-bottom:none;
         }
 
-        .side-buy{
-            color:var(--profit);
-        }
-
-        .side-sell{
-            color:var(--loss);
-        }
-
-        /* =========================
-           TAGS
-        ========================= */
+        .side-buy{ color:var(--profit); }
+        .side-sell{ color:var(--loss); }
 
         .tag{
             font-size:10px;
-
             padding:2px 6px;
-
             border-radius:2px;
-
             text-transform:uppercase;
-
             letter-spacing:.04em;
         }
 
         .tag-tp{
             background:rgba(79,178,134,.15);
-
             color:var(--profit);
         }
 
         .tag-sl{
             background:rgba(201,86,77,.15);
-
             color:var(--loss);
         }
 
-        /* =========================
-           EMPTY / LOADING
-        ========================= */
+        .tag-sim{
+            background:rgba(214,169,74,.15);
+            color:var(--accent);
+        }
+
+        .tag-live{
+            background:rgba(91,141,239,.15);
+            color:var(--live);
+        }
+
+        .cards{
+            display:none;
+        }
+
+        .card{
+            padding:14px 16px;
+            border-bottom:1px solid var(--line);
+        }
+
+        .card:last-child{
+            border-bottom:none;
+        }
+
+        .card-top{
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:10px;
+            margin-bottom:8px;
+        }
+
+        .card-symbol{
+            font-size:15px;
+            font-weight:600;
+            letter-spacing:.04em;
+        }
+
+        .card-tags{
+            display:flex;
+            gap:6px;
+            flex-shrink:0;
+        }
+
+        .card-date{
+            font-family:'IBM Plex Mono',monospace;
+            font-size:11px;
+            color:var(--muted);
+            margin-bottom:10px;
+        }
+
+        .card-row{
+            display:flex;
+            justify-content:space-between;
+            align-items:baseline;
+            gap:12px;
+            font-family:'IBM Plex Mono',monospace;
+            font-size:12px;
+        }
+
+        .card-pnl{
+            font-weight:600;
+            text-align:right;
+        }
 
         .empty{
             color:var(--muted);
-
             font-size:12.5px;
-
             padding:30px 18px;
-
             text-align:center;
         }
-
-        .loading{
-            padding:40px;
-
-            text-align:center;
-
-            color:var(--muted);
-
-            font-family:'IBM Plex Mono',monospace;
-        }
-
-        /* =========================
-           RESPONSIVE
-        ========================= */
 
         @media (max-width:1100px){
-
             .stat-row{
-                grid-template-columns:
-                    repeat(3,1fr);
+                grid-template-columns:repeat(3,1fr);
             }
-
         }
 
         @media (max-width:900px){
-
             .grid-2{
                 grid-template-columns:1fr;
             }
 
+            .recap-row{
+                grid-template-columns:1fr 1fr;
+            }
+
+            .recap-row .src,
+            .recap-row .big{
+                grid-column:span 1;
+            }
         }
 
-        @media (max-width:600px){
+        @media (max-width:720px){
+            :root{
+                --pad-x:max(16px, env(safe-area-inset-left));
+                --pad-r:max(16px, env(safe-area-inset-right));
+            }
 
             header{
-                padding:18px;
+                align-items:stretch;
+                flex-direction:column;
+                gap:14px;
+                padding-bottom:14px;
             }
 
-            #status{
-                padding-left:18px;
-                padding-right:18px;
+            .toolbar{
+                width:100%;
             }
 
-            main{
-                padding:18px 12px 40px;
+            .seg{
+                flex:1;
             }
 
-            .stat-row{
-                grid-template-columns:
-                    repeat(2,1fr);
+            .seg button{
+                flex:1;
+                padding:12px 8px;
             }
 
             .period-control{
                 width:100%;
             }
 
-            .period-control select{
+            .period-control select,
+            #recapYear{
                 flex:1;
+                width:100%;
+                font-size:16px;
             }
 
+            main{
+                padding:16px var(--pad-r) 48px var(--pad-x);
+            }
+
+            .stat-row{
+                grid-template-columns:repeat(2,1fr);
+            }
+
+            .stat{
+                padding:14px 12px;
+            }
+
+            .stat .value{
+                font-size:18px;
+            }
+
+            .chart-box{
+                height:220px;
+            }
+
+            .panel-head{
+                padding:10px 12px;
+            }
+
+            .recap-row{
+                padding:12px;
+            }
+
+            .panel .body{
+                padding:14px 12px;
+            }
+
+            .table-wrapper{
+                display:none;
+            }
+
+            .cards{
+                display:block;
+            }
+
+            .recap-controls{
+                width:100%;
+            }
+
+            .recap-controls .seg{
+                flex:1;
+            }
         }
 
     </style>
@@ -417,387 +588,168 @@
 <header>
 
     <div>
-
         <h1>Ledger</h1>
-
-        <div class="sub">
-            statistiche di esecuzione — Alpaca
-        </div>
-
+        <div class="sub">Alpaca live + simulazione TradingView</div>
     </div>
 
-    <!-- =========================
-         PERIODO
-    ========================== -->
+    <div class="toolbar">
 
-    <div class="period-control">
+        <div class="seg" id="sourceSeg" role="tablist">
+            <button type="button" data-source="all" class="active">Tutti</button>
+            <button type="button" data-source="sim">Sim</button>
+            <button type="button" data-source="live">Live</button>
+        </div>
 
-        <label for="periodSelect">
-            Periodo
-        </label>
-
-        <select id="periodSelect">
-
-            <option value="all">
-                Tutto
-            </option>
-
-            <option value="7">
-                Ultimi 7 giorni
-            </option>
-
-            <option value="30">
-                Ultimi 30 giorni
-            </option>
-
-            <option value="90">
-                Ultimi 3 mesi
-            </option>
-
-            <option value="180">
-                Ultimi 6 mesi
-            </option>
-
-            <option value="365">
-                Ultimo anno
-            </option>
-
-        </select>
+        <div class="period-control">
+            <label for="periodSelect">Periodo</label>
+            <select id="periodSelect">
+                <option value="all">Tutto</option>
+                <option value="7">Ultimi 7 giorni</option>
+                <option value="30">Ultimi 30 giorni</option>
+                <option value="90">Ultimi 3 mesi</option>
+                <option value="180">Ultimi 6 mesi</option>
+                <option value="365">Ultimo anno</option>
+            </select>
+        </div>
 
     </div>
 
 </header>
 
-<div id="status">
-    Caricamento dati…
-</div>
+<div id="status">Caricamento dati…</div>
 
 <main>
 
-    <!-- =========================
-         STATISTICHE
-    ========================== -->
-
     <div class="stat-row">
-
         <div class="stat">
-
-            <div class="label">
-                Trade chiusi
-            </div>
-
-            <div
-                    class="value"
-                    id="statTotal"
-            >
-                —
-            </div>
-
+            <div class="label">Trade chiusi</div>
+            <div class="value" id="statTotal">—</div>
         </div>
-
         <div class="stat">
-
-            <div class="label">
-                Win rate
-            </div>
-
-            <div
-                    class="value"
-                    id="statWinRate"
-            >
-                —
-            </div>
-
+            <div class="label">Win rate</div>
+            <div class="value" id="statWinRate">—</div>
         </div>
-
         <div class="stat">
-
-            <div class="label">
-                P&L cumulato
-            </div>
-
-            <div
-                    class="value"
-                    id="statPnl"
-            >
-                —
-            </div>
-
+            <div class="label" id="statPnlLabel">P&amp;L cumulato</div>
+            <div class="value" id="statPnl">—</div>
         </div>
-
         <div class="stat">
-
-            <div class="label">
-                Profit factor
-            </div>
-
-            <div
-                    class="value"
-                    id="statPf"
-            >
-                —
-            </div>
-
+            <div class="label" id="statPfLabel">Profit factor</div>
+            <div class="value" id="statPf">—</div>
         </div>
-
         <div class="stat">
-
-            <div class="label">
-                Media win / loss
-            </div>
-
-            <div
-                    class="value"
-                    id="statAvg"
-            >
-                —
-            </div>
-
+            <div class="label">Media win / loss</div>
+            <div class="value" id="statAvg">—</div>
         </div>
-
         <div class="stat">
-
-            <div class="label">
-                Miglior / peggior
-            </div>
-
-            <div
-                    class="value"
-                    id="statExtreme"
-            >
-                —
-            </div>
-
+            <div class="label">Miglior / peggior</div>
+            <div class="value" id="statExtreme">—</div>
         </div>
-
     </div>
-
-
-    <!-- =========================
-         EQUITY
-    ========================== -->
 
     <div class="panel">
-
-        <h2>
-            Curva equity (P&L cumulato per trade)
-        </h2>
-
+        <h2 id="equityTitle">Curva equity (P&amp;L cumulato per trade)</h2>
         <div class="body">
-
-            <canvas
-                    id="equityChart"
-                    height="80"
-            ></canvas>
-
+            <div class="chart-box">
+                <canvas id="equityChart"></canvas>
+            </div>
         </div>
-
     </div>
 
-
-    <!-- =========================
-         TRADE + SIMBOLI
-    ========================== -->
+    <div class="panel">
+        <div class="panel-head">
+            <h2 id="recapTitle">P&amp;L mensile</h2>
+            <div class="recap-controls">
+                <div class="seg" id="recapModeSeg" role="tablist">
+                    <button type="button" data-mode="12m" class="active">12 mesi</button>
+                    <button type="button" data-mode="ytd">YTD</button>
+                    <button type="button" data-mode="year">Anno</button>
+                </div>
+                <select id="recapYear" aria-label="Anno di riferimento"></select>
+            </div>
+        </div>
+        <div class="recap-stats" id="recapStats"></div>
+        <div class="body">
+            <div class="chart-box">
+                <canvas id="recapChart"></canvas>
+            </div>
+        </div>
+    </div>
 
     <div class="grid-2">
 
-
-        <!-- =========================
-             TRADE
-        ========================== -->
-
         <div class="panel">
-
-            <h2>
-                Trade
-            </h2>
-
+            <h2>Trade</h2>
             <div class="table-wrapper">
-
                 <table>
-
                     <thead>
-
                     <tr>
-
                         <th>#</th>
-
-                        <th>
-                            Chiuso il
-                        </th>
-
-                        <th>
-                            Simbolo
-                        </th>
-
-                        <th>
-                            Lato
-                        </th>
-
-                        <th>
-                            Qty
-                        </th>
-
-                        <th>
-                            Entry
-                        </th>
-
-                        <th>
-                            Exit
-                        </th>
-
-                        <th>
-                            Esito
-                        </th>
-
-                        <th>
-                            P&L
-                        </th>
-
-                        <th>
-                            P&L %
-                        </th>
-
+                        <th>Fonte</th>
+                        <th>Chiuso il</th>
+                        <th>Simbolo</th>
+                        <th>Lato</th>
+                        <th>Qty</th>
+                        <th>Entry</th>
+                        <th>Exit</th>
+                        <th>Esito</th>
+                        <th>P&amp;L</th>
+                        <th>P&amp;L %</th>
                     </tr>
-
                     </thead>
-
-                    <tbody
-                            id="tradesBody"
-                    ></tbody>
-
+                    <tbody id="tradesBody"></tbody>
                 </table>
-
             </div>
-
-            <div
-                    class="empty"
-                    id="tradesEmpty"
-                    style="display:none;"
-            >
+            <div class="cards" id="tradesCards"></div>
+            <div class="empty" id="tradesEmpty" style="display:none;">
                 Nessun trade chiuso nel periodo selezionato.
             </div>
-
         </div>
 
-
-        <!-- =========================
-             SIMBOLI
-        ========================== -->
-
         <div class="panel">
-
-            <h2>
-                Per simbolo
-            </h2>
-
+            <h2>Per simbolo</h2>
             <div class="table-wrapper">
-
                 <table>
-
                     <thead>
-
                     <tr>
-
-                        <th>
-                            Simbolo
-                        </th>
-
-                        <th>
-                            Trade
-                        </th>
-
-                        <th>
-                            Win rate
-                        </th>
-
-                        <th>
-                            P&L
-                        </th>
-
+                        <th>Simbolo</th>
+                        <th>Fonte</th>
+                        <th>Trade</th>
+                        <th>Win rate</th>
+                        <th>P&amp;L</th>
                     </tr>
-
                     </thead>
-
-                    <tbody
-                            id="symbolsBody"
-                    ></tbody>
-
+                    <tbody id="symbolsBody"></tbody>
                 </table>
-
             </div>
-
+            <div class="cards" id="symbolsCards"></div>
         </div>
 
     </div>
 
-
-    <!-- =========================
-         POSIZIONI APERTE
-    ========================== -->
-
     <div class="panel">
-
-        <h2>
-            Posizioni bracket ancora aperte
-        </h2>
-
+        <h2>Posizioni ancora aperte</h2>
         <div class="table-wrapper">
-
             <table>
-
                 <thead>
-
                 <tr>
-
-                    <th>
-                        Aperto il
-                    </th>
-
-                    <th>
-                        Simbolo
-                    </th>
-
-                    <th>
-                        Lato
-                    </th>
-
-                    <th>
-                        Qty
-                    </th>
-
-                    <th>
-                        Entry
-                    </th>
-
-                    <th>
-                        TP
-                    </th>
-
-                    <th>
-                        SL
-                    </th>
-
+                    <th>Fonte</th>
+                    <th>Aperto il</th>
+                    <th>Simbolo</th>
+                    <th>Lato</th>
+                    <th>Qty</th>
+                    <th>Entry</th>
+                    <th>TP</th>
+                    <th>SL</th>
                 </tr>
-
                 </thead>
-
-                <tbody
-                        id="openBody"
-                ></tbody>
-
+                <tbody id="openBody"></tbody>
             </table>
-
         </div>
-
-        <div
-                class="empty"
-                id="openEmpty"
-                style="display:none;"
-        >
-            Nessuna posizione bracket aperta.
+        <div class="cards" id="openCards"></div>
+        <div class="empty" id="openEmpty" style="display:none;">
+            Nessuna posizione aperta.
         </div>
-
     </div>
 
 </main>
@@ -805,1108 +757,802 @@
 
 <script>
 
-  /* =========================
-     UTILITY
-  ========================= */
+  const $ = id => document.getElementById(id);
 
-  const $ = id =>
-    document.getElementById(id);
-
-
-  let chartInstance = null;
-
+  const charts = {
+    equity: null,
+    recap: null
+  };
 
   let allClosed = [];
-
   let allOpen = [];
+  let sourceFilter = 'all';
+  let recapMode = '12m';
+  let recapYear = new Date().getFullYear();
 
+  const MONTHS_IT = [
+    'gen','feb','mar','apr','mag','giu',
+    'lug','ago','set','ott','nov','dic'
+  ];
 
-  function setStatus(
-    message,
-    isError = false
-  ){
-
-    const el =
-      $('status');
-
-    el.textContent =
-      message;
-
-    el.className =
-      isError
-        ? 'error'
-        : '';
-
+  function setStatus(message, isError = false){
+    const el = $('status');
+    el.textContent = message;
+    el.className = isError ? 'error' : '';
   }
-
 
   function fmtMoney(n){
+    n = Number(n || 0);
+    const sign = n < 0 ? '-' : '';
+    return sign + '$' + Math.abs(n).toFixed(2);
+  }
 
-    n =
-      Number(n || 0);
+  function fmtCompact(n){
+    n = Number(n || 0);
+    const abs = Math.abs(n);
+    const sign = n < 0 ? '-' : '';
+    if(abs >= 1e6) return sign + '$' + (abs / 1e6).toFixed(2) + 'M';
+    if(abs >= 1e3) return sign + '$' + (abs / 1e3).toFixed(1) + 'k';
+    return fmtMoney(n);
+  }
 
-    const sign =
-      n < 0
-        ? '-'
-        : '';
+  function fmtPct(n){
+    n = Number(n || 0);
+    const sign = n > 0 ? '+' : '';
+    return sign + n.toFixed(2) + '%';
+  }
 
-    return (
-      sign +
-      '$' +
-      Math.abs(n).toFixed(2)
+  function sourceOf(trade){
+    return trade.source || 'live';
+  }
+
+  function parseDate(value){
+    if(!value) return null;
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  function bySource(trades, source){
+    if(source === 'all') return [...trades];
+    return trades.filter(t => sourceOf(t) === source);
+  }
+
+  function monthKey(date){
+    return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0');
+  }
+
+  function lastMonthKeys(count){
+    const keys = [];
+    const now = new Date();
+    const cursor = new Date(now.getFullYear(), now.getMonth(), 1);
+    for(let i = count - 1; i >= 0; i--){
+      const d = new Date(cursor.getFullYear(), cursor.getMonth() - i, 1);
+      keys.push(monthKey(d));
+    }
+    return keys;
+  }
+
+  function labelMonth(key){
+    const [year, month] = key.split('-').map(Number);
+    return MONTHS_IT[month - 1] + ' ' + String(year).slice(2);
+  }
+
+  function sumPnl(trades){
+    return trades.reduce((sum, t) => sum + Number(t.pnl || 0), 0);
+  }
+
+  function winRate(trades){
+    if(!trades.length) return 0;
+    const wins = trades.filter(t => Number(t.pnl) > 0).length;
+    return (wins / trades.length) * 100;
+  }
+
+  function profitFactor(trades){
+    const wins = trades.filter(t => Number(t.pnl) > 0);
+    const losses = trades.filter(t => Number(t.pnl) <= 0);
+    const grossWin = sumPnl(wins);
+    const grossLoss = Math.abs(sumPnl(losses));
+    if(grossLoss > 0) return grossWin / grossLoss;
+    return grossWin > 0 ? Infinity : 0;
+  }
+
+  function avgWinLoss(trades, usePct){
+    const wins = trades.filter(t => Number(t.pnl) > 0);
+    const losses = trades.filter(t => Number(t.pnl) <= 0);
+    const pick = t => usePct ? Number(t.pnlPct || 0) : Number(t.pnl || 0);
+    const avgWin = wins.length
+      ? wins.reduce((s, t) => s + pick(t), 0) / wins.length
+      : 0;
+    const avgLoss = losses.length
+      ? Math.abs(losses.reduce((s, t) => s + pick(t), 0) / losses.length)
+      : 0;
+    return { avgWin, avgLoss };
+  }
+
+  function extremes(trades, usePct){
+    if(!trades.length) return { best: 0, worst: 0 };
+    const values = trades.map(t =>
+      usePct ? Number(t.pnlPct || 0) : Number(t.pnl || 0)
     );
+    return {
+      best: Math.max(...values),
+      worst: Math.min(...values)
+    };
+  }
 
+  function bucketBy(trades, keyFn){
+    const buckets = {};
+    for(const trade of trades){
+      const closed = parseDate(trade.closedAt);
+      if(!closed) continue;
+      const key = keyFn(closed);
+      buckets[key] = (buckets[key] || 0) + Number(trade.pnl || 0);
+    }
+    return buckets;
+  }
+
+  function signedColors(values){
+    return values.map(v =>
+      v >= 0
+        ? 'rgba(79,178,134,.88)'
+        : 'rgba(201,86,77,.88)'
+    );
+  }
+
+  function destroyChart(name){
+    if(charts[name]){
+      charts[name].destroy();
+      charts[name] = null;
+    }
+  }
+
+  function chartDefaults(){
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        }
+      }
+    };
+  }
+
+  function axisTicks(){
+    return {
+      color: '#7C8790',
+      font: {
+        family: 'IBM Plex Mono',
+        size: 10
+      },
+      maxRotation: 60,
+      minRotation: 0
+    };
   }
 
 
-  /* =========================
-     CARICAMENTO DATI
-  ========================= */
-
   async function loadDashboard(){
-
-    setStatus(
-      'Caricamento dati da Alpaca…'
-    );
+    setStatus('Caricamento dati da Alpaca e simulazioni…');
 
     try{
-
-      const response =
-        await fetch(
-          '/dashboard/data',
-          {
-            method:'GET',
-            cache:'no-store'
-          }
-        );
-
+      const response = await fetch('/dashboard/data', {
+        method: 'GET',
+        cache: 'no-store'
+      });
 
       if(!response.ok){
-
-        let message =
-          `HTTP ${response.status}`;
-
-
+        let message = `HTTP ${response.status}`;
         try{
-
-          const error =
-            await response.json();
-
-          if(error.message){
-
-            message =
-              error.message;
-
-          }
-
+          const error = await response.json();
+          if(error.message) message = error.message;
         }catch(_){}
-
-
-        throw new Error(
-          message
-        );
-
+        throw new Error(message);
       }
 
+      const data = await response.json();
+      allClosed = data.closed || [];
+      allOpen = data.open || [];
 
-      const data =
-        await response.json();
-
-
-      allClosed =
-        data.closed || [];
-
-
-      allOpen =
-        data.open || [];
-
-
-      /*
-       * IMPORTANT:
-       *
-       * Sempre cronologico:
-       *
-       * vecchio -> nuovo
-       *
-       * NON usare reverse().
-       */
-
-      allClosed.sort(
-        (a,b) =>
-          new Date(a.closedAt) -
-          new Date(b.closedAt)
+      allClosed.sort((a, b) =>
+        (parseDate(a.closedAt)?.getTime() || 0) -
+        (parseDate(b.closedAt)?.getTime() || 0)
       );
 
-
+      syncRecapYears();
       renderDashboard();
 
+      const simCount = allClosed.filter(t => sourceOf(t) === 'sim').length;
+      const liveCount = allClosed.filter(t => sourceOf(t) === 'live').length;
 
       setStatus(
         `Aggiornato: ${new Date().toLocaleString('it-IT')} — ` +
-        `${allClosed.length} trade chiusi, ` +
-        `${allOpen.length} posizioni aperte.`
+        `${simCount} sim, ${liveCount} live, ` +
+        `${allOpen.length} aperte.`
       );
-
 
     }catch(error){
-
       console.error(error);
-
-
-      setStatus(
-        'Errore: ' +
-        error.message,
-        true
-      );
-
+      setStatus('Errore: ' + error.message, true);
     }
-
   }
 
-
-  /* =========================
-     FILTRO PERIODO
-  ========================= */
 
   function getFilteredClosed(){
+    let trades = bySource(allClosed, sourceFilter);
+    const period = $('periodSelect').value;
 
-    const period =
-      $('periodSelect').value;
+    if(period === 'all') return trades;
 
-
-    if(
-      period === 'all'
-    ){
-
-      return [
-        ...allClosed
-      ];
-
-    }
-
-
-    const days =
-      Number(period);
-
-
-    const cutoff =
-      Date.now() -
-      (
-        days *
-        24 *
-        60 *
-        60 *
-        1000
-      );
-
-
-    return allClosed.filter(
-      trade =>
-        new Date(
-          trade.closedAt
-        ).getTime()
-        >= cutoff
-    );
-
+    const cutoff = Date.now() - (Number(period) * 24 * 60 * 60 * 1000);
+    return trades.filter(trade => {
+      const closed = parseDate(trade.closedAt);
+      return closed && closed.getTime() >= cutoff;
+    });
   }
 
-
-  /* =========================
-     RENDER DASHBOARD
-  ========================= */
 
   function renderDashboard(){
+    const closed = getFilteredClosed();
+    const mixed = sourceFilter === 'all';
 
-    const closed =
-      getFilteredClosed();
-
-
-    /*
-     * closed è SEMPRE:
-     *
-     * vecchio -> nuovo
-     */
-
-    renderStats(
-      closed
-    );
-
-
-    renderEquityChart(
-      closed
-    );
-
-
-    renderTradesTable(
-      closed
-    );
-
-
-    renderSymbolsTable(
-      closed
-    );
-
-
-    /*
-     * Le posizioni aperte
-     * non dipendono dal periodo.
-     */
-
-    renderOpenTable(
-      allOpen
-    );
-
+    renderStats(closed, mixed);
+    renderEquityChart(closed, mixed);
+    renderRecap();
+    renderTradesTable(closed);
+    renderSymbolsTable(closed);
+    renderOpenTable(bySource(allOpen, sourceFilter));
   }
 
 
-  /* =========================
-     STATISTICHE
-  ========================= */
+  function renderStats(closed, mixed){
+    const total = closed.length;
+    const rate = winRate(closed);
+    const { avgWin, avgLoss } = avgWinLoss(closed, mixed);
+    const { best, worst } = extremes(closed, mixed);
 
-  function renderStats(
-    closed
-  ){
+    $('statTotal').textContent = total;
+    $('statWinRate').textContent = total ? rate.toFixed(1) + '%' : '—';
+    $('statWinRate').className = 'value ' + (rate >= 50 ? 'up' : 'down');
 
-    const total =
-      closed.length;
+    if(mixed){
+      const simPnl = sumPnl(closed.filter(t => sourceOf(t) === 'sim'));
+      const livePnl = sumPnl(closed.filter(t => sourceOf(t) === 'live'));
 
+      $('statPnlLabel').textContent = 'P&L Sim';
+      $('statPnl').textContent = total ? fmtCompact(simPnl) : '—';
+      $('statPnl').className = 'value ' + (simPnl >= 0 ? 'up' : 'down');
 
-    const wins =
-      closed.filter(
-        t =>
-          Number(t.pnl) > 0
-      );
+      $('statPfLabel').textContent = 'P&L Live';
+      $('statPf').textContent = fmtCompact(livePnl);
+      $('statPf').className = 'value ' + (livePnl >= 0 ? 'up' : 'down');
 
+      $('statAvg').innerHTML =
+        `<span class="up">${fmtPct(avgWin)}</span> / ` +
+        `<span class="down">-${Math.abs(avgLoss).toFixed(2)}%</span>`;
 
-    const losses =
-      closed.filter(
-        t =>
-          Number(t.pnl) <= 0
-      );
+      $('statExtreme').innerHTML =
+        `<span class="up">${fmtPct(best)}</span> / ` +
+        `<span class="down">${fmtPct(worst)}</span>`;
+    }else{
+      const totalPnl = sumPnl(closed);
+      const pf = profitFactor(closed);
 
+      $('statPnlLabel').textContent = 'P&L cumulato';
+      $('statPnl').textContent = fmtMoney(totalPnl);
+      $('statPnl').className = 'value ' + (totalPnl >= 0 ? 'up' : 'down');
 
-    const totalPnl =
-      closed.reduce(
-        (sum,t) =>
-          sum +
-          Number(t.pnl || 0),
-        0
-      );
+      $('statPfLabel').textContent = 'Profit factor';
+      $('statPf').textContent = isFinite(pf) ? pf.toFixed(2) : '∞';
+      $('statPf').className = 'value';
 
+      $('statAvg').innerHTML =
+        `<span class="up">${fmtMoney(avgWin)}</span> / ` +
+        `<span class="down">-${fmtMoney(avgLoss)}</span>`;
 
-    const grossWin =
-      wins.reduce(
-        (sum,t) =>
-          sum +
-          Number(t.pnl || 0),
-        0
-      );
-
-
-    const grossLoss =
-      Math.abs(
-        losses.reduce(
-          (sum,t) =>
-            sum +
-            Number(t.pnl || 0),
-          0
-        )
-      );
-
-
-    const winRate =
-      total
-        ? (
-        wins.length /
-        total
-      ) * 100
-        : 0;
-
-
-    const profitFactor =
-      grossLoss > 0
-        ? grossWin /
-        grossLoss
-        : grossWin > 0
-          ? Infinity
-          : 0;
-
-
-    const avgWin =
-      wins.length
-        ? grossWin /
-        wins.length
-        : 0;
-
-
-    const avgLoss =
-      losses.length
-        ? grossLoss /
-        losses.length
-        : 0;
-
-
-    const best =
-      total
-        ? Math.max(
-          ...closed.map(
-            t =>
-              Number(
-                t.pnl || 0
-              )
-          )
-        )
-        : 0;
-
-
-    const worst =
-      total
-        ? Math.min(
-          ...closed.map(
-            t =>
-              Number(
-                t.pnl || 0
-              )
-          )
-        )
-        : 0;
-
-
-    $('statTotal')
-      .textContent =
-      total;
-
-
-    $('statWinRate')
-      .textContent =
-      total
-        ? winRate.toFixed(1) + '%'
-        : '—';
-
-
-    $('statWinRate')
-      .className =
-      'value ' +
-      (
-        winRate >= 50
-          ? 'up'
-          : 'down'
-      );
-
-
-    $('statPnl')
-      .textContent =
-      fmtMoney(
-        totalPnl
-      );
-
-
-    $('statPnl')
-      .className =
-      'value ' +
-      (
-        totalPnl >= 0
-          ? 'up'
-          : 'down'
-      );
-
-
-    $('statPf')
-      .textContent =
-      isFinite(
-        profitFactor
-      )
-        ? profitFactor.toFixed(2)
-        : '∞';
-
-
-    $('statAvg')
-      .innerHTML =
-      `<span class="up">${
-        fmtMoney(avgWin)
-      }</span> / ` +
-      `<span class="down">-${
-        fmtMoney(avgLoss)
-      }</span>`;
-
-
-    $('statExtreme')
-      .innerHTML =
-      `<span class="up">${
-        fmtMoney(best)
-      }</span> / ` +
-      `<span class="down">${
-        fmtMoney(worst)
-      }</span>`;
-
-  }
-
-
-  /* =========================
-     EQUITY CHART
-  ========================= */
-
-  function renderEquityChart(
-    closed
-  ){
-
-    if(
-      typeof Chart ===
-      'undefined'
-    ){
-
-      throw new Error(
-        'Chart.js non è stato caricato.'
-      );
-
+      $('statExtreme').innerHTML =
+        `<span class="up">${fmtMoney(best)}</span> / ` +
+        `<span class="down">${fmtMoney(worst)}</span>`;
     }
+  }
 
+
+  function renderEquityChart(closed, mixed){
+    if(typeof Chart === 'undefined'){
+      throw new Error('Chart.js non è stato caricato.');
+    }
 
     let running = 0;
+    const points = closed.map(trade => {
+      running += mixed
+        ? Number(trade.pnlPct || 0)
+        : Number(trade.pnl || 0);
+      return running;
+    });
 
+    const labels = closed.map((_, index) => index + 1);
 
-    /*
-     * IMPORTANTE:
-     *
-     * closed è vecchio -> nuovo.
-     *
-     * Quindi la curva equity
-     * viene costruita correttamente.
-     */
+    $('equityTitle').textContent = mixed
+      ? 'Curva equity (ritorno % cumulato per trade)'
+      : 'Curva equity (P&L cumulato per trade)';
 
-    const points =
-      closed.map(
-        trade => {
+    destroyChart('equity');
 
-          running +=
-            Number(
-              trade.pnl || 0
-            );
-
-          return running;
-
-        }
-      );
-
-
-    /*
-     * Trade #1 = primo trade
-     * del periodo selezionato.
-     */
-
-    const labels =
-      closed.map(
-        (_, index) =>
-          index + 1
-      );
-
-
-    if(chartInstance){
-
-      chartInstance.destroy();
-
-      chartInstance =
-        null;
-
-    }
-
-
-    chartInstance =
-      new Chart(
-        $('equityChart'),
-        {
-
-          type:'line',
-
-          data:{
-
-            labels,
-
-            datasets:[{
-
-              data:points,
-
-              borderColor:
-                '#D6A94A',
-
-              backgroundColor:
-                'rgba(214,169,74,0.08)',
-
-              borderWidth:1.5,
-
-              pointRadius:0,
-
-              fill:true,
-
-              tension:0.15
-
-            }]
-
-          },
-
-          options:{
-
-            responsive:true,
-
-            plugins:{
-
-              legend:{
-                display:false
-              }
-
-            },
-
-            scales:{
-
-              x:{
-
-                grid:{
-                  color:
-                    '#232A32'
-                },
-
-                ticks:{
-
-                  color:
-                    '#7C8790',
-
-                  font:{
-                    family:
-                      'IBM Plex Mono',
-
-                    size:10
-                  }
-
-                },
-
-                title:{
-
-                  display:true,
-
-                  text:
-                    'trade #',
-
-                  color:
-                    '#7C8790'
-
-                }
-
-              },
-
-              y:{
-
-                grid:{
-                  color:
-                    '#232A32'
-                },
-
-                ticks:{
-
-                  color:
-                    '#7C8790',
-
-                  font:{
-                    family:
-                      'IBM Plex Mono',
-
-                    size:10
-                  },
-
-                  callback:
-                    value =>
-                      '$' +
-                      value
-
-                }
-
-              }
-
+    charts.equity = new Chart($('equityChart'), {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          data: points,
+          borderColor: '#D6A94A',
+          backgroundColor: 'rgba(214,169,74,0.08)',
+          borderWidth: 1.5,
+          pointRadius: 0,
+          fill: true,
+          tension: 0.15
+        }]
+      },
+      options: {
+        ...chartDefaults(),
+        scales: {
+          x: {
+            grid: { color: '#232A32' },
+            ticks: axisTicks(),
+            title: {
+              display: true,
+              text: 'trade #',
+              color: '#7C8790'
             }
-
+          },
+          y: {
+            grid: { color: '#232A32' },
+            ticks: {
+              ...axisTicks(),
+              callback: value => mixed
+                ? value.toFixed(1) + '%'
+                : '$' + value
+            }
           }
-
         }
-      );
-
+      }
+    });
   }
 
 
-  /* =========================
-     TRADE TABLE
-  ========================= */
+  function availableYears(){
+    const years = new Set([new Date().getFullYear()]);
+    for(const trade of allClosed){
+      const closed = parseDate(trade.closedAt);
+      if(closed) years.add(closed.getFullYear());
+    }
+    return [...years].sort((a, b) => b - a);
+  }
 
-  function renderTradesTable(
-    closed
-  ){
+  function yearMonthKeys(year, throughMonth){
+    const keys = [];
+    for(let month = 0; month <= throughMonth; month++){
+      keys.push(year + '-' + String(month + 1).padStart(2, '0'));
+    }
+    return keys;
+  }
 
-    const body =
-      $('tradesBody');
+  function recapMonthKeys(){
+    if(recapMode === '12m') return lastMonthKeys(12);
 
-
-    body.innerHTML =
-      '';
-
-
-    /*
-     * Mostriamo gli ultimi 50
-     * trade del periodo.
-     *
-     * MA NON facciamo reverse().
-     *
-     * Rimangono:
-     *
-     * vecchio -> nuovo
-     */
-
-    const visible =
-      closed.slice(-50);
-
-
-    $('tradesEmpty')
-      .style.display =
-      visible.length
-        ? 'none'
-        : 'block';
-
-
-    /*
-     * Numero globale all'interno
-     * del periodo selezionato.
-     */
-
-    const offset =
-      closed.length -
-      visible.length;
-
-
-    for(
-      let i = 0;
-      i < visible.length;
-      i++
+    const now = new Date();
+    if(
+      recapMode === 'ytd' &&
+      recapYear === now.getFullYear()
     ){
-
-      const t =
-        visible[i];
-
-
-      const pnl =
-        Number(
-          t.pnl || 0
-        );
-
-
-      const entryPrice =
-        Number(
-          t.entryPrice
-        );
-
-
-      const qty =
-        Number(
-          t.qty
-        );
-
-
-      let pnlPct =
-        Number(
-          t.pnlPct
-        );
-
-
-      if(
-        !Number.isFinite(
-          pnlPct
-        )
-      ){
-
-        pnlPct =
-          entryPrice &&
-          qty
-            ? (
-              pnl /
-              (
-                entryPrice *
-                qty
-              )
-            ) *
-            100
-            : 0;
-
-      }
-
-
-      const tradeNumber =
-        offset +
-        i +
-        1;
-
-
-      const tr =
-        document.createElement(
-          'tr'
-        );
-
-
-      tr.innerHTML = `
-
-                <td>
-                    ${tradeNumber}
-                </td>
-
-                <td>
-                    ${new Date(
-        t.closedAt
-      ).toLocaleString(
-        'it-IT'
-      )}
-                </td>
-
-                <td>
-                    ${t.symbol}
-                </td>
-
-                <td class="side-${t.side}">
-                    ${t.side}
-                </td>
-
-                <td>
-                    ${t.qty}
-                </td>
-
-                <td>
-                    ${entryPrice.toFixed(
-        2
-      )}
-                </td>
-
-                <td>
-                    ${Number(
-        t.exitPrice
-      ).toFixed(
-        2
-      )}
-                </td>
-
-                <td>
-
-                    <span
-                        class="tag tag-${t.outcome}"
-                    >
-
-                        ${
-        t.outcome === 'tp'
-          ? 'TP'
-          : 'SL'
-      }
-
-                    </span>
-
-                </td>
-
-                <td class="${
-        pnl >= 0
-          ? 'up'
-          : 'down'
-      }">
-
-                    ${fmtMoney(
-        pnl
-      )}
-
-                </td>
-
-                <td class="${
-        pnlPct >= 0
-          ? 'up'
-          : 'down'
-      }">
-
-                    ${
-        pnlPct >= 0
-          ? '+'
-          : ''
-      }${pnlPct.toFixed(
-        2
-      )}%
-
-                </td>
-
-            `;
-
-
-      body.appendChild(
-        tr
-      );
-
+      return yearMonthKeys(recapYear, now.getMonth());
     }
 
+    return yearMonthKeys(recapYear, 11);
   }
 
-
-  /* =========================
-     SIMBOLI
-  ========================= */
-
-  function renderSymbolsTable(
-    closed
-  ){
-
-    const bySymbol =
-      {};
-
-
-    for(
-      const t of closed
-      ){
-
-      if(
-        !bySymbol[t.symbol]
-      ){
-
-        bySymbol[t.symbol] = {
-
-          count:0,
-
-          wins:0,
-
-          pnl:0
-
-        };
-
-      }
-
-
-      bySymbol[
-        t.symbol
-        ].count++;
-
-
-      if(
-        Number(t.pnl) > 0
-      ){
-
-        bySymbol[
-          t.symbol
-          ].wins++;
-
-      }
-
-
-      bySymbol[
-        t.symbol
-        ].pnl +=
-        Number(
-          t.pnl || 0
-        );
-
+  function recapLabels(keys){
+    const years = new Set(keys.map(key => key.slice(0, 4)));
+    if(years.size === 1){
+      return keys.map(key => MONTHS_IT[Number(key.slice(5)) - 1]);
     }
-
-
-    const rows =
-      Object.entries(
-        bySymbol
-      ).sort(
-        (a,b) =>
-          b[1].pnl -
-          a[1].pnl
-      );
-
-
-    const body =
-      $('symbolsBody');
-
-
-    body.innerHTML =
-      '';
-
-
-    for(
-      const [
-        symbol,
-        s
-      ]
-      of rows
-      ){
-
-      const winRate =
-        s.count
-          ? (
-          s.wins /
-          s.count
-        ) * 100
-          : 0;
-
-
-      const tr =
-        document.createElement(
-          'tr'
-        );
-
-
-      tr.innerHTML = `
-
-                <td>
-                    ${symbol}
-                </td>
-
-                <td>
-                    ${s.count}
-                </td>
-
-                <td>
-                    ${winRate.toFixed(
-        0
-      )}%
-                </td>
-
-                <td class="${
-        s.pnl >= 0
-          ? 'up'
-          : 'down'
-      }">
-
-                    ${fmtMoney(
-        s.pnl
-      )}
-
-                </td>
-
-            `;
-
-
-      body.appendChild(
-        tr
-      );
-
-    }
-
+    return keys.map(labelMonth);
   }
 
-
-  /* =========================
-     OPEN POSITIONS
-  ========================= */
-
-  function renderOpenTable(
-    open
-  ){
-
-    const body =
-      $('openBody');
-
-
-    body.innerHTML =
-      '';
-
-
-    $('openEmpty')
-      .style.display =
-      open.length
-        ? 'none'
-        : 'block';
-
-
-    for(
-      const p of open
-      ){
-
-      const tr =
-        document.createElement(
-          'tr'
-        );
-
-
-      tr.innerHTML = `
-
-                <td>
-                    ${new Date(
-        p.filledAt
-      ).toLocaleString(
-        'it-IT'
-      )}
-                </td>
-
-                <td>
-                    ${p.symbol}
-                </td>
-
-                <td class="side-${p.side}">
-                    ${p.side}
-                </td>
-
-                <td>
-                    ${p.qty}
-                </td>
-
-                <td>
-                    ${Number(
-        p.entryPrice
-      ).toFixed(
-        2
-      )}
-                </td>
-
-                <td>
-
-                    ${
-        p.tp !== null &&
-        p.tp !== undefined
-          ? Number(
-            p.tp
-          ).toFixed(
-            2
-          )
-          : '—'
-      }
-
-                </td>
-
-                <td>
-
-                    ${
-        p.sl !== null &&
-        p.sl !== undefined
-          ? Number(
-            p.sl
-          ).toFixed(
-            2
-          )
-          : '—'
-      }
-
-                </td>
-
-            `;
-
-
-      body.appendChild(
-        tr
-      );
-
-    }
-
+  function tradesInRecapWindow(source){
+    const keys = new Set(recapMonthKeys());
+    return bySource(allClosed, source).filter(trade => {
+      const closed = parseDate(trade.closedAt);
+      return closed && keys.has(monthKey(closed));
+    });
   }
 
+  function syncRecapYears(){
+    const select = $('recapYear');
+    const years = availableYears();
+    if(!years.includes(recapYear)) recapYear = years[0];
 
-  /* =========================
-     PERIOD CHANGE
-  ========================= */
+    select.innerHTML = years.map(year =>
+      `<option value="${year}">${year}</option>`
+    ).join('');
+    select.value = String(recapYear);
+  }
 
-  $('periodSelect')
-    .addEventListener(
-      'change',
-      renderDashboard
+  function syncRecapControls(){
+    for(const button of $('recapModeSeg').querySelectorAll('button')){
+      button.classList.toggle('active', button.dataset.mode === recapMode);
+    }
+    $('recapYear').style.display = recapMode === '12m' ? 'none' : '';
+  }
+
+  function recapTitleText(){
+    if(recapMode === '12m') return 'P&L mensile · ultimi 12 mesi';
+    if(recapMode === 'ytd') return 'P&L mensile · YTD ' + recapYear;
+    return 'P&L mensile · ' + recapYear;
+  }
+
+  function renderRecapStatRow(source, label){
+    const trades = tradesInRecapWindow(source);
+    const pnl = sumPnl(trades);
+    const rate = winRate(trades);
+    const { avgWin, avgLoss } = avgWinLoss(trades, true);
+
+    return `
+      <div class="recap-row ${source}">
+        <div class="src">${label}</div>
+        <div class="big ${pnl >= 0 ? 'up' : 'down'}">${fmtCompact(pnl)}</div>
+        <div class="cell">
+          <div class="k">Trade</div>
+          <div class="v">${trades.length}</div>
+        </div>
+        <div class="cell">
+          <div class="k">Win rate</div>
+          <div class="v ${rate >= 50 ? 'up' : 'down'}">${
+            trades.length ? rate.toFixed(1) + '%' : '—'
+          }</div>
+        </div>
+        <div class="cell">
+          <div class="k">Media win / loss</div>
+          <div class="v">
+            <span class="up">${fmtPct(avgWin)}</span>
+            /
+            <span class="down">-${Math.abs(avgLoss).toFixed(2)}%</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderRecap(){
+    syncRecapControls();
+    $('recapTitle').textContent = recapTitleText();
+
+    const showSim = sourceFilter !== 'live';
+    const showLive = sourceFilter !== 'sim';
+
+    let html = '';
+    if(showSim) html += renderRecapStatRow('sim', 'Sim');
+    if(showLive) html += renderRecapStatRow('live', 'Live');
+    $('recapStats').innerHTML = html;
+
+    const keys = recapMonthKeys();
+    const labels = recapLabels(keys);
+    const simValues = keys.map(key =>
+      (bucketBy(bySource(allClosed, 'sim'), monthKey)[key] || 0)
+    );
+    const liveValues = keys.map(key =>
+      (bucketBy(bySource(allClosed, 'live'), monthKey)[key] || 0)
     );
 
+    const mixed = showSim && showLive;
+    const datasets = [];
 
-  /* =========================
-     START
-  ========================= */
+    if(showSim){
+      datasets.push({
+        label: 'Sim',
+        data: simValues,
+        backgroundColor: mixed
+          ? 'rgba(214,169,74,.88)'
+          : signedColors(simValues),
+        borderWidth: 0,
+        borderRadius: 2,
+        maxBarThickness: 28,
+        yAxisID: 'y'
+      });
+    }
 
-  document.addEventListener(
-    'DOMContentLoaded',
-    loadDashboard
-  );
+    if(showLive){
+      datasets.push({
+        label: 'Live',
+        data: liveValues,
+        backgroundColor: mixed
+          ? 'rgba(91,141,239,.88)'
+          : signedColors(liveValues),
+        borderWidth: 0,
+        borderRadius: 2,
+        maxBarThickness: 28,
+        yAxisID: mixed ? 'y1' : 'y'
+      });
+    }
+
+    const scales = {
+      x: {
+        grid: { display: false },
+        ticks: {
+          ...axisTicks(),
+          autoSkip: true,
+          maxTicksLimit: 12
+        }
+      },
+      y: {
+        grid: { color: '#232A32' },
+        ticks: {
+          ...axisTicks(),
+          color: mixed ? '#D6A94A' : '#7C8790',
+          callback: value => fmtCompact(value)
+        }
+      }
+    };
+
+    if(mixed){
+      scales.y1 = {
+        position: 'right',
+        grid: { drawOnChartArea: false },
+        ticks: {
+          ...axisTicks(),
+          color: '#5B8DEF',
+          callback: value => fmtCompact(value)
+        }
+      };
+    }
+
+    destroyChart('recap');
+
+    charts.recap = new Chart($('recapChart'), {
+      type: 'bar',
+      data: { labels, datasets },
+      options: {
+        ...chartDefaults(),
+        layout: {
+          padding: { top: 8, right: 4, bottom: 0, left: 0 }
+        },
+        plugins: {
+          legend: {
+            display: mixed,
+            labels: {
+              color: '#7C8790',
+              font: { family: 'IBM Plex Mono', size: 10 },
+              boxWidth: 10
+            }
+          }
+        },
+        scales
+      }
+    });
+  }
+
+
+  function sourceTag(source){
+    return source === 'sim'
+      ? '<span class="tag tag-sim">Sim</span>'
+      : '<span class="tag tag-live">Live</span>';
+  }
+
+  function outcomeTag(outcome){
+    return `
+      <span class="tag tag-${outcome}">
+        ${outcome === 'tp' ? 'TP' : 'SL'}
+      </span>
+    `;
+  }
+
+  function formatClosed(value){
+    const date = parseDate(value);
+    return date ? date.toLocaleString('it-IT') : '—';
+  }
+
+
+  function renderTradesTable(closed){
+    const body = $('tradesBody');
+    const cards = $('tradesCards');
+    body.innerHTML = '';
+    cards.innerHTML = '';
+
+    const visible = closed.slice(-50);
+    $('tradesEmpty').style.display = visible.length ? 'none' : 'block';
+
+    const offset = closed.length - visible.length;
+
+    for(let i = 0; i < visible.length; i++){
+      const t = visible[i];
+      const pnl = Number(t.pnl || 0);
+      const entryPrice = Number(t.entryPrice);
+      const qty = Number(t.qty);
+      let pnlPct = Number(t.pnlPct);
+
+      if(!Number.isFinite(pnlPct)){
+        pnlPct = entryPrice && qty
+          ? (pnl / (entryPrice * qty)) * 100
+          : 0;
+      }
+
+      const tradeNumber = offset + i + 1;
+      const source = sourceOf(t);
+      const pnlClass = pnl >= 0 ? 'up' : 'down';
+      const pctClass = pnlPct >= 0 ? 'up' : 'down';
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${tradeNumber}</td>
+        <td>${sourceTag(source)}</td>
+        <td>${formatClosed(t.closedAt)}</td>
+        <td>${t.symbol}</td>
+        <td class="side-${t.side}">${t.side}</td>
+        <td>${t.qty}</td>
+        <td>${entryPrice.toFixed(2)}</td>
+        <td>${Number(t.exitPrice).toFixed(2)}</td>
+        <td>${outcomeTag(t.outcome)}</td>
+        <td class="${pnlClass}">${fmtMoney(pnl)}</td>
+        <td class="${pctClass}">${fmtPct(pnlPct)}</td>
+      `;
+      body.appendChild(tr);
+
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <div class="card-top">
+          <div class="card-symbol">${t.symbol}</div>
+          <div class="card-tags">
+            ${sourceTag(source)}
+            ${outcomeTag(t.outcome)}
+          </div>
+        </div>
+        <div class="card-date">${formatClosed(t.closedAt)} · #${tradeNumber}</div>
+        <div class="card-row">
+          <span class="side-${t.side}">${t.side} ${t.qty}</span>
+          <span>${entryPrice.toFixed(2)} → ${Number(t.exitPrice).toFixed(2)}</span>
+        </div>
+        <div class="card-row" style="margin-top:8px;">
+          <span></span>
+          <span class="card-pnl ${pnlClass}">
+            ${fmtCompact(pnl)}
+            <span class="${pctClass}">${fmtPct(pnlPct)}</span>
+          </span>
+        </div>
+      `;
+      cards.appendChild(card);
+    }
+  }
+
+
+  function renderSymbolsTable(closed){
+    const byKey = {};
+
+    for(const t of closed){
+      const source = sourceOf(t);
+      const key = t.symbol + '|' + source;
+      if(!byKey[key]){
+        byKey[key] = {
+          symbol: t.symbol,
+          source,
+          count: 0,
+          wins: 0,
+          pnl: 0
+        };
+      }
+      byKey[key].count++;
+      if(Number(t.pnl) > 0) byKey[key].wins++;
+      byKey[key].pnl += Number(t.pnl || 0);
+    }
+
+    const rows = Object.values(byKey).sort((a, b) => b.pnl - a.pnl);
+    const body = $('symbolsBody');
+    const cards = $('symbolsCards');
+    body.innerHTML = '';
+    cards.innerHTML = '';
+
+    for(const s of rows){
+      const rate = s.count ? (s.wins / s.count) * 100 : 0;
+      const pnlClass = s.pnl >= 0 ? 'up' : 'down';
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${s.symbol}</td>
+        <td>${sourceTag(s.source)}</td>
+        <td>${s.count}</td>
+        <td>${rate.toFixed(0)}%</td>
+        <td class="${pnlClass}">${fmtMoney(s.pnl)}</td>
+      `;
+      body.appendChild(tr);
+
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <div class="card-top">
+          <div class="card-symbol">${s.symbol}</div>
+          ${sourceTag(s.source)}
+        </div>
+        <div class="card-row">
+          <span>${s.count} trade · ${rate.toFixed(0)}%</span>
+          <span class="card-pnl ${pnlClass}">${fmtCompact(s.pnl)}</span>
+        </div>
+      `;
+      cards.appendChild(card);
+    }
+  }
+
+
+  function renderOpenTable(open){
+    const body = $('openBody');
+    const cards = $('openCards');
+    body.innerHTML = '';
+    cards.innerHTML = '';
+
+    $('openEmpty').style.display = open.length ? 'none' : 'block';
+
+    for(const p of open){
+      const source = sourceOf(p);
+      const tp = p.tp != null ? Number(p.tp).toFixed(2) : '—';
+      const sl = p.sl != null ? Number(p.sl).toFixed(2) : '—';
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${sourceTag(source)}</td>
+        <td>${formatClosed(p.filledAt)}</td>
+        <td>${p.symbol}</td>
+        <td class="side-${p.side}">${p.side}</td>
+        <td>${p.qty}</td>
+        <td>${Number(p.entryPrice).toFixed(2)}</td>
+        <td>${tp}</td>
+        <td>${sl}</td>
+      `;
+      body.appendChild(tr);
+
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <div class="card-top">
+          <div class="card-symbol">${p.symbol}</div>
+          ${sourceTag(source)}
+        </div>
+        <div class="card-date">${formatClosed(p.filledAt)}</div>
+        <div class="card-row">
+          <span class="side-${p.side}">${p.side} ${p.qty}</span>
+          <span>${Number(p.entryPrice).toFixed(2)}</span>
+        </div>
+        <div class="card-row" style="margin-top:8px;">
+          <span>TP ${tp}</span>
+          <span>SL ${sl}</span>
+        </div>
+      `;
+      cards.appendChild(card);
+    }
+  }
+
+
+  $('periodSelect').addEventListener('change', renderDashboard);
+
+  $('recapModeSeg').addEventListener('click', event => {
+    const button = event.target.closest('button[data-mode]');
+    if(!button) return;
+    recapMode = button.dataset.mode;
+    renderRecap();
+  });
+
+  $('recapYear').addEventListener('change', event => {
+    recapYear = Number(event.target.value);
+    renderRecap();
+  });
+
+  $('sourceSeg').addEventListener('click', event => {
+    const button = event.target.closest('button[data-source]');
+    if(!button) return;
+    sourceFilter = button.dataset.source;
+    for(const el of $('sourceSeg').querySelectorAll('button')){
+      el.classList.toggle('active', el === button);
+    }
+    renderDashboard();
+  });
+
+  document.addEventListener('DOMContentLoaded', loadDashboard);
 
 </script>
 
