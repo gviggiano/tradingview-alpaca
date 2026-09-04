@@ -2,3 +2,5 @@
 /.idea/modules.xml
 /.idea/tradingview-alpaca.iml
 /.idea/vcs.xml
+_pycache_
+*.pyc
