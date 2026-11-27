@@ -472,8 +472,150 @@
             text-align:center;
         }
 
+        .health-strip{
+            display:flex;
+            flex-wrap:wrap;
+            align-items:center;
+            gap:8px 18px;
+            margin:0 0 22px;
+            padding:10px 14px;
+            background:var(--panel);
+            border:1px solid var(--line);
+            font-family:'IBM Plex Mono',monospace;
+            font-size:12px;
+        }
+
+        .health-badge{
+            display:flex;
+            align-items:baseline;
+            gap:8px;
+            min-width:0;
+        }
+
+        .health-badge .src{
+            font-size:10px;
+            font-weight:600;
+            letter-spacing:.1em;
+            text-transform:uppercase;
+        }
+
+        .health-badge.sim .src{ color:var(--accent); }
+        .health-badge.live .src{ color:var(--live); }
+        .health-badge.dim{ opacity:.38; }
+
+        .health-meta{
+            margin-left:auto;
+            color:var(--muted);
+            font-size:11px;
+        }
+
+        .stat-row.risk{
+            grid-template-columns:repeat(5,1fr);
+        }
+
+        .stat .sub{
+            margin-top:4px;
+            font-family:'IBM Plex Mono',monospace;
+            font-size:11px;
+            color:var(--muted);
+            font-weight:500;
+        }
+
+        .stat .value.compact{
+            font-size:12.5px;
+            font-weight:500;
+            line-height:1.45;
+        }
+
+        .stat .split{
+            display:flex;
+            flex-direction:column;
+            gap:6px;
+        }
+
+        .stat .split .line{
+            display:flex;
+            justify-content:space-between;
+            gap:8px;
+            align-items:baseline;
+        }
+
+        .stat .split .src{
+            font-size:10px;
+            letter-spacing:.08em;
+            text-transform:uppercase;
+            font-weight:600;
+            flex-shrink:0;
+        }
+
+        .stat .split .src.sim{ color:var(--accent); }
+        .stat .split .src.live{ color:var(--live); }
+
+        .stat .split .metric{
+            text-align:right;
+            min-width:0;
+        }
+
+        .trades-more{
+            display:flex;
+            flex-wrap:wrap;
+            align-items:center;
+            gap:8px;
+            padding:12px 14px;
+            border-top:1px solid var(--line);
+        }
+
+        .trades-more[hidden]{
+            display:none !important;
+        }
+
+        .trades-more button{
+            appearance:none;
+            border:1px solid var(--line);
+            background:var(--panel-2);
+            color:var(--text);
+            font-family:'IBM Plex Mono',monospace;
+            font-size:11px;
+            letter-spacing:.06em;
+            text-transform:uppercase;
+            padding:10px 14px;
+            min-height:40px;
+            cursor:pointer;
+            border-radius:var(--radius);
+            -webkit-tap-highlight-color:transparent;
+        }
+
+        .trades-more button:hover{
+            border-color:var(--accent);
+            color:var(--accent);
+        }
+
+        .trades-more button:focus-visible{
+            outline:1px solid var(--accent);
+            outline-offset:2px;
+        }
+
+        .trades-more button[hidden]{
+            display:none !important;
+        }
+
+        .trades-more .meta{
+            margin-left:auto;
+            color:var(--muted);
+            font-size:11px;
+        }
+
+        .open-risk{
+            font-family:'IBM Plex Mono',monospace;
+            font-size:11px;
+            color:var(--muted);
+            text-align:right;
+            min-width:0;
+        }
+
         @media (max-width:1100px){
-            .stat-row{
+            .stat-row,
+            .stat-row.risk{
                 grid-template-columns:repeat(3,1fr);
             }
         }
@@ -534,8 +676,22 @@
                 padding:16px var(--pad-r) 48px var(--pad-x);
             }
 
-            .stat-row{
+            .stat-row,
+            .stat-row.risk{
                 grid-template-columns:repeat(2,1fr);
+            }
+
+            .health-meta,
+            .trades-more .meta,
+            .open-risk{
+                margin-left:0;
+                flex-basis:100%;
+                text-align:left;
+                width:100%;
+            }
+
+            .trades-more button{
+                flex:1;
             }
 
             .stat{
@@ -620,6 +776,18 @@
 
 <main>
 
+    <div class="health-strip" id="healthStrip" role="status">
+        <div class="health-badge sim" id="healthSimBadge">
+            <span class="src">Sim</span>
+            <span id="healthSim">—</span>
+        </div>
+        <div class="health-badge live" id="healthLiveBadge">
+            <span class="src">Live</span>
+            <span id="healthLive">—</span>
+        </div>
+        <div class="health-meta" id="healthLast">Ultimo chiuso —</div>
+    </div>
+
     <div class="stat-row">
         <div class="stat">
             <div class="label">Trade chiusi</div>
@@ -644,6 +812,29 @@
         <div class="stat">
             <div class="label">Miglior / peggior</div>
             <div class="value" id="statExtreme">—</div>
+        </div>
+    </div>
+
+    <div class="stat-row risk">
+        <div class="stat">
+            <div class="label">Max drawdown</div>
+            <div class="value" id="statMaxDd">—</div>
+        </div>
+        <div class="stat">
+            <div class="label">DD attuale</div>
+            <div class="value" id="statCurDd">—</div>
+        </div>
+        <div class="stat">
+            <div class="label">Serie perdite</div>
+            <div class="value" id="statStreak">—</div>
+        </div>
+        <div class="stat">
+            <div class="label">Payoff</div>
+            <div class="value" id="statPayoff">—</div>
+        </div>
+        <div class="stat">
+            <div class="label">Expectancy</div>
+            <div class="value" id="statExpectancy">—</div>
         </div>
     </div>
 
@@ -704,6 +895,11 @@
             <div class="empty" id="tradesEmpty" style="display:none;">
                 Nessun trade chiuso nel periodo selezionato.
             </div>
+            <div class="trades-more" id="tradesMore" hidden>
+                <button type="button" id="showMoreBtn">Mostra altri</button>
+                <button type="button" id="showAllBtn">Mostra tutti</button>
+                <span class="meta mono" id="tradesMoreMeta"></span>
+            </div>
         </div>
 
         <div class="panel">
@@ -728,7 +924,10 @@
     </div>
 
     <div class="panel">
-        <h2>Posizioni ancora aperte</h2>
+        <div class="panel-head">
+            <h2>Posizioni ancora aperte</h2>
+            <div class="open-risk" id="openRiskSummary"></div>
+        </div>
         <div class="table-wrapper">
             <table>
                 <thead>
@@ -741,6 +940,8 @@
                     <th>Entry</th>
                     <th>TP</th>
                     <th>SL</th>
+                    <th>Nozionale</th>
+                    <th>Rischio SL</th>
                 </tr>
                 </thead>
                 <tbody id="openBody"></tbody>
@@ -755,6 +956,7 @@
 </main>
 
 
+<script src="{{ url_for('static', filename='ledger_metrics.js') }}"></script>
 <script>
 
   const $ = id => document.getElementById(id);
@@ -769,6 +971,7 @@
   let sourceFilter = 'all';
   let recapMode = '12m';
   let recapYear = new Date().getFullYear();
+  let tradesVisible = LedgerMetrics.TRADES_PAGE_SIZE;
 
   const MONTHS_IT = [
     'gen','feb','mar','apr','mag','giu',
@@ -952,10 +1155,10 @@
       const data = await response.json();
       allClosed = data.closed || [];
       allOpen = data.open || [];
-
-      allClosed.sort((a, b) =>
-        (parseDate(a.closedAt)?.getTime() || 0) -
-        (parseDate(b.closedAt)?.getTime() || 0)
+      tradesVisible = LedgerMetrics.nextShown(
+        0,
+        getFilteredClosed().length,
+        'init'
       );
 
       syncRecapYears();
@@ -977,17 +1180,27 @@
   }
 
 
-  function getFilteredClosed(){
-    let trades = bySource(allClosed, sourceFilter);
+  function getPeriodClosed(){
     const period = $('periodSelect').value;
-
-    if(period === 'all') return trades;
+    if(period === 'all') return [...allClosed];
 
     const cutoff = Date.now() - (Number(period) * 24 * 60 * 60 * 1000);
-    return trades.filter(trade => {
+    return allClosed.filter(trade => {
       const closed = parseDate(trade.closedAt);
       return closed && closed.getTime() >= cutoff;
     });
+  }
+
+  function getFilteredClosed(){
+    return bySource(getPeriodClosed(), sourceFilter);
+  }
+
+  function resetTradeWindow(){
+    tradesVisible = LedgerMetrics.nextShown(
+      tradesVisible,
+      getFilteredClosed().length,
+      'filter'
+    );
   }
 
 
@@ -995,7 +1208,9 @@
     const closed = getFilteredClosed();
     const mixed = sourceFilter === 'all';
 
+    renderHealth(getPeriodClosed(), closed);
     renderStats(closed, mixed);
+    renderRisk(closed, mixed);
     renderEquityChart(closed, mixed);
     renderRecap();
     renderTradesTable(closed);
@@ -1056,20 +1271,151 @@
   }
 
 
+  function fmtSignedMoney(n){
+    n = Number(n || 0);
+    if(n > 0) return '+' + fmtMoney(n);
+    return fmtMoney(n);
+  }
+
+  function fmtRiskPct(n){
+    if(n == null || !Number.isFinite(Number(n))) return '—';
+    return Number(n).toFixed(2) + '%';
+  }
+
+  function setMetric(id, html, compact){
+    const el = $(id);
+    el.className = compact ? 'value compact' : 'value';
+    el.innerHTML = html;
+  }
+
+  function formatHealthBook(book){
+    const cls = book.pnl > 0 ? 'up' : book.pnl < 0 ? 'down' : '';
+    const pnl = book.count ? fmtCompact(book.pnl) : fmtMoney(0);
+    return `${book.count} trade · <span class="${cls}">${pnl}</span>`;
+  }
+
+  function renderHealth(periodTrades, viewTrades){
+    const period = LedgerMetrics.sourceHealth(periodTrades);
+    const view = LedgerMetrics.sourceHealth(viewTrades);
+
+    $('healthSim').innerHTML = formatHealthBook(period.sim);
+    $('healthLive').innerHTML = formatHealthBook(period.live);
+    $('healthSimBadge').classList.toggle('dim', sourceFilter === 'live');
+    $('healthLiveBadge').classList.toggle('dim', sourceFilter === 'sim');
+
+    $('healthLast').textContent = view.lastClosedAt
+      ? 'Ultimo chiuso ' + formatClosed(view.lastClosedAt)
+      : 'Ultimo chiuso —';
+  }
+
+  function drawdownHtml(dollars, pct){
+    const cls = dollars > 0 ? 'down' : '';
+    const pctHtml = pct == null
+      ? '<div class="sub">—</div>'
+      : `<div class="sub ${cls}">${fmtPct(-pct)}</div>`;
+    return `<span class="${cls}">${fmtMoney(-dollars)}</span>${pctHtml}`;
+  }
+
+  function drawdownInline(report, field){
+    if(!report.count) return '—';
+    const dollars = field === 'current' ? report.currentDrawdown : report.maxDrawdown;
+    const pct = field === 'current' ? report.currentDrawdownPct : report.maxDrawdownPct;
+    const cls = dollars > 0 ? 'down' : '';
+    const pctText = pct == null ? '—' : fmtPct(-pct);
+    return `<span class="${cls}">${fmtMoney(-dollars)} · ${pctText}</span>`;
+  }
+
+  function streakText(report){
+    if(!report.count) return '—';
+    return String(report.maxLosingStreak);
+  }
+
+  function payoffText(report){
+    if(!report.count) return '—';
+    if(report.payoffInfinite) return '∞';
+    if(report.payoffRatio == null) return '—';
+    return Number(report.payoffRatio).toFixed(2);
+  }
+
+  function expectancyHtml(report){
+    if(!report.count || report.expectancy == null) return '—';
+    const cls = report.expectancy > 0 ? 'up' : report.expectancy < 0 ? 'down' : '';
+    return `<span class="${cls}">${fmtSignedMoney(report.expectancy)}</span>` +
+      `<div class="sub ${cls}">${fmtPct(report.expectancyPct || 0)}</div>`;
+  }
+
+  function expectancyInline(report){
+    if(!report.count || report.expectancy == null) return '—';
+    const cls = report.expectancy > 0 ? 'up' : report.expectancy < 0 ? 'down' : '';
+    return `<span class="${cls}">${fmtSignedMoney(report.expectancy)} · ${fmtPct(report.expectancyPct || 0)}</span>`;
+  }
+
+  function splitMetric(simHtml, liveHtml){
+    return `
+      <div class="split">
+        <div class="line">
+          <span class="src sim">Sim</span>
+          <span class="metric">${simHtml}</span>
+        </div>
+        <div class="line">
+          <span class="src live">Live</span>
+          <span class="metric">${liveHtml}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderRisk(closed, mixed){
+    if(mixed){
+      const bySource = LedgerMetrics.riskBySource(closed);
+      const sim = bySource.sim;
+      const live = bySource.live;
+      setMetric('statMaxDd', splitMetric(
+        drawdownInline(sim, 'max'),
+        drawdownInline(live, 'max')
+      ), true);
+      setMetric('statCurDd', splitMetric(
+        drawdownInline(sim, 'current'),
+        drawdownInline(live, 'current')
+      ), true);
+      setMetric('statStreak', splitMetric(streakText(sim), streakText(live)), true);
+      setMetric('statPayoff', splitMetric(payoffText(sim), payoffText(live)), true);
+      setMetric('statExpectancy', splitMetric(
+        expectancyInline(sim),
+        expectancyInline(live)
+      ), true);
+      return;
+    }
+
+    const report = LedgerMetrics.riskReport(closed);
+    if(!report.count){
+      setMetric('statMaxDd', '—');
+      setMetric('statCurDd', '—');
+      setMetric('statStreak', '—');
+      setMetric('statPayoff', '—');
+      setMetric('statExpectancy', '—');
+      return;
+    }
+
+    setMetric('statMaxDd', drawdownHtml(report.maxDrawdown, report.maxDrawdownPct));
+    setMetric('statCurDd', drawdownHtml(report.currentDrawdown, report.currentDrawdownPct));
+    setMetric(
+      'statStreak',
+      `${streakText(report)}<div class="sub">SL consecutivi</div>`
+    );
+    setMetric('statPayoff', payoffText(report));
+    setMetric('statExpectancy', expectancyHtml(report));
+  }
+
+
   function renderEquityChart(closed, mixed){
     if(typeof Chart === 'undefined'){
       throw new Error('Chart.js non è stato caricato.');
     }
 
-    let running = 0;
-    const points = closed.map(trade => {
-      running += mixed
-        ? Number(trade.pnlPct || 0)
-        : Number(trade.pnl || 0);
-      return running;
-    });
-
-    const labels = closed.map((_, index) => index + 1);
+    const series = LedgerMetrics.equitySeries(closed, mixed);
+    const points = series.points;
+    const labels = series.trades.map((_, index) => index + 1);
 
     $('equityTitle').textContent = mixed
       ? 'Curva equity (ritorno % cumulato per trade)'
@@ -1356,13 +1702,15 @@
     body.innerHTML = '';
     cards.innerHTML = '';
 
-    const visible = closed.slice(-50);
-    $('tradesEmpty').style.display = visible.length ? 'none' : 'block';
+    const page = LedgerMetrics.presentTrades(closed, tradesVisible);
+    $('tradesEmpty').style.display = page.rows.length ? 'none' : 'block';
+    $('tradesMore').hidden = !page.showMore;
+    $('showMoreBtn').textContent = 'Mostra altri ' + page.nextCount;
+    $('showAllBtn').hidden = !page.showMore || page.remaining <= page.nextCount;
+    $('tradesMoreMeta').textContent = page.shown + ' di ' + page.total;
 
-    const offset = closed.length - visible.length;
-
-    for(let i = 0; i < visible.length; i++){
-      const t = visible[i];
+    for(const row of page.rows){
+      const t = row.trade;
       const pnl = Number(t.pnl || 0);
       const entryPrice = Number(t.entryPrice);
       const qty = Number(t.qty);
@@ -1374,7 +1722,7 @@
           : 0;
       }
 
-      const tradeNumber = offset + i + 1;
+      const tradeNumber = row.number;
       const source = sourceOf(t);
       const pnlClass = pnl >= 0 ? 'up' : 'down';
       const pctClass = pnlPct >= 0 ? 'up' : 'down';
@@ -1480,18 +1828,70 @@
   }
 
 
+  function riskAmountClass(amount){
+    if(amount == null || !Number.isFinite(Number(amount)) || Number(amount) === 0) return '';
+    return Number(amount) > 0 ? 'down' : 'up';
+  }
+
+  function formatOpenRisk(position){
+    const risk = LedgerMetrics.openPositionRisk(position);
+    const riskText = risk.risk == null
+      ? '—'
+      : `${fmtMoney(risk.risk)} · ${fmtRiskPct(risk.riskPct)}`;
+    return {
+      notionalText: fmtMoney(risk.notional),
+      riskText,
+      riskClass: riskAmountClass(risk.risk),
+    };
+  }
+
+  function renderOpenRiskSummary(positions){
+    const el = $('openRiskSummary');
+    if(!positions.length){
+      el.textContent = '';
+      return;
+    }
+
+    const summary = LedgerMetrics.summarizeOpenRisk(positions);
+    const sim = positions.filter(position => sourceOf(position) === 'sim');
+    const live = positions.filter(position => sourceOf(position) === 'live');
+    const riskText = summary.risk == null ? '—' : fmtMoney(summary.risk);
+    const riskClass = riskAmountClass(summary.risk);
+    let split = '';
+
+    if(sim.length && live.length){
+      const simRisk = LedgerMetrics.summarizeOpenRisk(sim);
+      const liveRisk = LedgerMetrics.summarizeOpenRisk(live);
+      const simText = simRisk.risk == null ? '—' : fmtMoney(simRisk.risk);
+      const liveText = liveRisk.risk == null ? '—' : fmtMoney(liveRisk.risk);
+      split = ` (Sim ${simText} · Live ${liveText})`;
+    }
+
+    const slNote = summary.withSl < summary.positions
+      ? ` · ${summary.withSl}/${summary.positions} con SL`
+      : '';
+
+    el.innerHTML =
+      `Nozionale ${fmtMoney(summary.notional)} · ` +
+      `Rischio SL <span class="${riskClass}">${riskText}</span>` +
+      split + slNote;
+  }
+
   function renderOpenTable(open){
+    const positions = LedgerMetrics.sortOpenNewestFirst(open);
     const body = $('openBody');
     const cards = $('openCards');
     body.innerHTML = '';
     cards.innerHTML = '';
 
-    $('openEmpty').style.display = open.length ? 'none' : 'block';
+    $('openEmpty').style.display = positions.length ? 'none' : 'block';
+    renderOpenRiskSummary(positions);
 
-    for(const p of open){
+    for(const p of positions){
       const source = sourceOf(p);
       const tp = p.tp != null ? Number(p.tp).toFixed(2) : '—';
       const sl = p.sl != null ? Number(p.sl).toFixed(2) : '—';
+      const risk = formatOpenRisk(p);
 
       const tr = document.createElement('tr');
       tr.innerHTML = `
@@ -1503,6 +1903,8 @@
         <td>${Number(p.entryPrice).toFixed(2)}</td>
         <td>${tp}</td>
         <td>${sl}</td>
+        <td>${risk.notionalText}</td>
+        <td class="${risk.riskClass}">${risk.riskText}</td>
       `;
       body.appendChild(tr);
 
@@ -1519,6 +1921,10 @@
           <span>${Number(p.entryPrice).toFixed(2)}</span>
         </div>
         <div class="card-row" style="margin-top:8px;">
+          <span>Nozionale ${risk.notionalText}</span>
+          <span class="${risk.riskClass}">SL ${risk.riskText}</span>
+        </div>
+        <div class="card-row" style="margin-top:8px;">
           <span>TP ${tp}</span>
           <span>SL ${sl}</span>
         </div>
@@ -1528,7 +1934,10 @@
   }
 
 
-  $('periodSelect').addEventListener('change', renderDashboard);
+  $('periodSelect').addEventListener('change', () => {
+    resetTradeWindow();
+    renderDashboard();
+  });
 
   $('recapModeSeg').addEventListener('click', event => {
     const button = event.target.closest('button[data-mode]');
@@ -1544,12 +1953,31 @@
 
   $('sourceSeg').addEventListener('click', event => {
     const button = event.target.closest('button[data-source]');
-    if(!button) return;
+    if(!button || button.dataset.source === sourceFilter) return;
     sourceFilter = button.dataset.source;
     for(const el of $('sourceSeg').querySelectorAll('button')){
       el.classList.toggle('active', el === button);
     }
+    resetTradeWindow();
     renderDashboard();
+  });
+
+  $('showMoreBtn').addEventListener('click', () => {
+    tradesVisible = LedgerMetrics.nextShown(
+      tradesVisible,
+      getFilteredClosed().length,
+      'more'
+    );
+    renderTradesTable(getFilteredClosed());
+  });
+
+  $('showAllBtn').addEventListener('click', () => {
+    tradesVisible = LedgerMetrics.nextShown(
+      tradesVisible,
+      getFilteredClosed().length,
+      'all'
+    );
+    renderTradesTable(getFilteredClosed());
   });
 
   document.addEventListener('DOMContentLoaded', loadDashboard);
